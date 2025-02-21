@@ -39,7 +39,7 @@ public class AuthController {
 
     @Operation(summary = "이메일 인증번호 확인", description = "사용자가 입력한 인증번호를 검증하는 API")
     @ResponseStatus(HttpStatus.OK)
-    @PostMapping("/verfy-email")
+    @PostMapping("check-verification-code")
     public BaseResponse<String> verifyEmailCode(@RequestParam String email, @RequestParam String code) {
         if (mailService.verifyCode(email, code)) {
             // 인증 성공 시
