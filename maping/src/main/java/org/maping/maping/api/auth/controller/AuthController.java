@@ -4,6 +4,9 @@ import groovy.util.logging.Slf4j;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.checkerframework.checker.units.qual.A;
+import org.maping.maping.api.auth.dto.request.PasswordRequest;
+import org.maping.maping.api.auth.service.AuthService;
 import org.maping.maping.api.auth.service.MailService;
 import org.maping.maping.common.utills.jwt.JWTUtill;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -23,6 +26,7 @@ import static org.hibernate.query.sqm.tree.SqmNode.log;
 public class AuthController {
 
     private final MailService mailService;
+    private final AuthService authService;
 
     @Operation(summary = "이메일 인증번호 발송", description = "이메일 인증번호를 발송하는 API")
     @ResponseStatus(HttpStatus.OK)
@@ -50,4 +54,28 @@ public class AuthController {
         }
     }
 
+    @Operation(summary = "비밀번호 검증", description = "비밀번호를 검증하는 API")
+    @ResponseStatus(HttpStatus.OK)
+    @PostMapping("/validate")
+    public BaseResponse<Boolean> validatePassword(@RequestBody PasswordRequest request) {
+        boolean isValid = authService.isValidPassword(request.getPassword());
+        return new BaseResponse<>(200, "비밀번호 검증 완료", isValid);
+
+    }
+
+    @Operation(summary = "닉네임 유효성 검사", description = "닉네임 유효성 검사 API")
+    @ResponseStatus(HttpStatus.OK)
+    @PostMapping("/validate-nickname")
+    public BaseResponse<Boolean> validateNickname(@RequestParam String nickname) {
+        boolean isValid = authService.isValidNickname(nickname);
+        return new BaseResponse<>(200, "닉네임 유효성 검사 완료", isValid);
+    }
+
+    @Operation(summary = "닉네임 중복 검사", description = "닉네임 중복 검사 API")
+    @ResponseStatus(HttpStatus.OK)
+    @PostMapping("/check-nickname")
+    public BaseResponse<Boolean> checkNicknameDuplicate(@RequestParam String nickname) {
+        boolean isDuplicate = authService.isDuplicateNickname(nickname);
+        return new BaseResponse<>(200, "닉네임 중복 검사 완료", isDuplicate);
+    }
 }
