@@ -3,18 +3,25 @@ package org.maping.maping.api.auth.controller;
 import groovy.util.logging.Slf4j;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
-import org.checkerframework.checker.units.qual.A;
+import org.maping.maping.api.auth.dto.request.NicknameCheckRequest;
 import org.maping.maping.api.auth.dto.request.PasswordRequest;
+import org.maping.maping.api.auth.dto.request.UserRegistrationRequest;
 import org.maping.maping.api.auth.service.AuthService;
 import org.maping.maping.api.auth.service.MailService;
-import org.maping.maping.common.utills.jwt.JWTUtill;
+import org.maping.maping.common.enums.expection.ErrorCode;
+import org.maping.maping.exceptions.CustomException;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import jakarta.mail.MessagingException;
 import org.maping.maping.common.response.BaseResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static org.hibernate.query.sqm.tree.SqmNode.log;
 
@@ -27,6 +34,7 @@ public class AuthController {
 
     private final MailService mailService;
     private final AuthService authService;
+    private static final Logger logger = LoggerFactory.getLogger(AuthController.class);
 
     @Operation(summary = "이메일 인증번호 발송", description = "이메일 인증번호를 발송하는 API")
     @ResponseStatus(HttpStatus.OK)
@@ -71,11 +79,32 @@ public class AuthController {
         return new BaseResponse<>(200, "닉네임 유효성 검사 완료", isValid);
     }
 
-    @Operation(summary = "닉네임 중복 검사", description = "닉네임 중복 검사 API")
+    @Operation(summary = "닉네임 중복 검사", description = "닉네임 중복 여부를 확인하는 API")
     @ResponseStatus(HttpStatus.OK)
     @PostMapping("/check-nickname")
-    public BaseResponse<Boolean> checkNicknameDuplicate(@RequestParam String nickname) {
-        boolean isDuplicate = authService.isDuplicateNickname(nickname);
-        return new BaseResponse<>(200, "닉네임 중복 검사 완료", isDuplicate);
+    public BaseResponse<Boolean> checkNicknameDuplicate(@Valid @RequestBody NicknameCheckRequest request) {
+        try {
+            // request 전체를 전달하도록 수정
+            boolean isDuplicate = authService.isDuplicateNickname(request);
+            return new BaseResponse<>(200, "닉네임 중복 검사 완료", isDuplicate);
+        } catch (CustomException ce) {
+            // CustomException의 메시지를 로그에 남깁니다.
+            logger.error("CustomException: {}", ce.getMessage());
+            throw ce;
+        } catch (Exception e) {
+            throw new CustomException(ErrorCode.BadRequest, "잘못된 요청입니다. 입력값을 확인해주세요.", HttpStatus.BAD_REQUEST);
+        }
     }
+
+
+    @Operation(summary = "회원가입", description = "사용자를 등록하는 API")
+    @ResponseStatus(HttpStatus.CREATED)
+    @PostMapping("/register")
+    public BaseResponse<String> registerUser(@Valid @RequestBody UserRegistrationRequest registrationRequest) {
+        authService.registerUser(registrationRequest);
+        return new BaseResponse<>(HttpStatus.CREATED.value(), "회원가입이 완료되었습니다.", "회원가입 성공", true);
+    }
+
+
 }
+

@@ -3,7 +3,6 @@ package org.maping.maping.model.user;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
 
@@ -21,16 +20,19 @@ public class UserInfoJpaEntity {
     @Column(name = "user_id")
     private Long userId;
 
-    @Column(name = "email")
+    @Column(nullable = false)
     private String email;
 
-    @Column(name = "user_name")
+    @Column(name = "user_name", nullable = false)
     private String userName;
 
-    @Column(name = "iconic")
+    @Column
     private String iconic;
 
-    @Column(name = "created_at")
+    @CreationTimestamp // 생성일자를 자동으로 관리
+    @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
+    @OneToOne(mappedBy = "userInfo", cascade = CascadeType.ALL)
+    private LocalJpaEntity local; // Local을 LocalJpaEntity로 수정
 }

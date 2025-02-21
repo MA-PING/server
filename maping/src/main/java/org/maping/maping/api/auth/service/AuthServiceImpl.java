@@ -1,14 +1,28 @@
 package org.maping.maping.api.auth.service;
+import com.sun.jna.platform.win32.Netapi32Util;
+import lombok.Builder;
 import lombok.RequiredArgsConstructor;
+import org.maping.maping.api.auth.dto.request.NicknameCheckRequest;
+import org.maping.maping.api.auth.dto.request.UserRegistrationRequest;
+import org.maping.maping.common.enums.expection.ErrorCode;
+import org.maping.maping.exceptions.CustomException;
+import org.maping.maping.model.user.LocalJpaEntity;
+import org.maping.maping.model.user.UserInfoJpaEntity;
+import org.maping.maping.repository.user.LocalRepository;
 import org.maping.maping.repository.user.UserRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import java.time.LocalDateTime;
 import java.util.regex.Pattern;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
+@Builder
 @RequiredArgsConstructor
 public class AuthServiceImpl implements AuthService {
     private final UserRepository userRepository;
+    private final LocalRepository localJpaRepository;
+    private final BCryptPasswordEncoder passwordEncoder;
 
     private static final String PASSWORD_REGEX = "^(?=.*[A-Za-z])(?=.*\\d)[A-Za-z\\d!@#$%^&*()_+\\-=]{6,}$";
     private static final Pattern PASSWORD_PATTERN = Pattern.compile(PASSWORD_REGEX);
@@ -24,6 +38,13 @@ public class AuthServiceImpl implements AuthService {
         return PASSWORD_PATTERN.matcher(password).matches();
     }
 
+    private void checkValidNickname(String nickname) {
+        if (!isValidNickname(nickname)) {
+            throw new IllegalArgumentException("닉네임 형식이 유효하지 않습니다.");
+        }
+    }
+
+    @Override
     public boolean isValidNickname(String nickname) {
         if (nickname == null) {
             return false;
@@ -32,7 +53,39 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    public boolean isDuplicateNickname(String nickname) {
+    public boolean isDuplicateNickname(NicknameCheckRequest request) {
+        String nickname = request.getNickname();
+
+        // 닉네임 유효성 검사
+        if (!isValidNickname(nickname)) {
+            throw new CustomException(ErrorCode.BadRequest, "닉네임 형식이 유효하지 않습니다.");
+        }
+        // 닉네임 중복 여부 확인
         return userRepository.existsByuserName(nickname);
+    }
+
+
+
+    @Override
+    public void registerUser(UserRegistrationRequest registrationDto) {
+        // 사용자 정보 엔티티 생성
+        UserInfoJpaEntity userInfo = UserInfoJpaEntity.builder()
+                .email(registrationDto.getEmail())
+                .userName(registrationDto.getUserName())
+                .build();
+
+        // 비밀번호 암호화
+        String encodedPassword = passwordEncoder.encode(registrationDto.getPassword());
+
+        // 로컬 엔티티 생성
+        LocalJpaEntity local = LocalJpaEntity.builder()
+                .email(registrationDto.getEmail())
+                .password(encodedPassword)
+                .userInfo(userInfo)
+                .build();
+
+        // 데이터베이스에 저장
+        userRepository.save(userInfo);
+        localJpaRepository.save(local);
     }
 }
