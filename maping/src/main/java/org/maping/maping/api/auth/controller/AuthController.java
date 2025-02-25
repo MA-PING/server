@@ -6,12 +6,14 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
+import org.maping.maping.api.auth.dto.request.LoginRequest;
 import org.maping.maping.api.auth.dto.request.NicknameCheckRequest;
 import org.maping.maping.api.auth.dto.request.PasswordRequest;
 import org.maping.maping.api.auth.dto.request.UserRegistrationRequest;
 import org.maping.maping.api.auth.service.AuthService;
 import org.maping.maping.api.auth.service.MailService;
 import org.maping.maping.common.enums.expection.ErrorCode;
+import org.maping.maping.common.utills.jwt.dto.JwtDto;
 import org.maping.maping.exceptions.CustomException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -36,6 +38,21 @@ public class AuthController {
     private final AuthService authService;
     private static final Logger logger = LoggerFactory.getLogger(AuthController.class);
 
+    @Operation(summary = "회원가입", description = "사용자를 등록하는 API")
+    @ResponseStatus(HttpStatus.CREATED)
+    @PostMapping("/register")
+    public BaseResponse<String> registerUser(@Valid @RequestBody UserRegistrationRequest registrationRequest) {
+        authService.registerUser(registrationRequest);
+        return new BaseResponse<>(HttpStatus.CREATED.value(), "회원가입이 완료되었습니다.", "회원가입 성공", true);
+    }
+
+    @Operation(summary = "로그인", description = "사용자가 로그인하여 JWT를 발급받는 API")
+    @PostMapping("/login")
+    public BaseResponse<JwtDto> login(@Valid @RequestBody LoginRequest loginRequest) {
+        JwtDto jwtDto = authService.login(loginRequest.getEmail(), loginRequest.getPassword());
+        return new BaseResponse<>(HttpStatus.OK.value(), "로그인 성공", jwtDto, true);
+    }
+
     @Operation(summary = "이메일 인증번호 발송", description = "이메일 인증번호를 발송하는 API")
     @ResponseStatus(HttpStatus.OK)
     @PostMapping("/send-email-verification")
@@ -59,7 +76,6 @@ public class AuthController {
             return new BaseResponse<>(HttpStatus.BAD_REQUEST.value(), "인증 실패 (만료되었거나 잘못된 코드입니다)", "인증 실패", false);
         }
     }
-
 
     @Operation(summary = "비밀번호 검증", description = "비밀번호를 검증하는 API")
     @ResponseStatus(HttpStatus.OK)
@@ -94,15 +110,5 @@ public class AuthController {
             throw new CustomException(ErrorCode.BadRequest, "잘못된 요청입니다. 입력값을 확인해주세요.", HttpStatus.BAD_REQUEST);
         }
     }
-
-    @Operation(summary = "회원가입", description = "사용자를 등록하는 API")
-    @ResponseStatus(HttpStatus.CREATED)
-    @PostMapping("/register")
-    public BaseResponse<String> registerUser(@Valid @RequestBody UserRegistrationRequest registrationRequest) {
-        authService.registerUser(registrationRequest);
-        return new BaseResponse<>(HttpStatus.CREATED.value(), "회원가입이 완료되었습니다.", "회원가입 성공", true);
-    }
-
-
 }
 

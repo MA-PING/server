@@ -1,6 +1,7 @@
 package org.maping.maping.api.auth.service;
 import org.maping.maping.api.auth.dto.request.NicknameCheckRequest;
 import org.maping.maping.api.auth.dto.request.UserRegistrationRequest;
+import org.maping.maping.common.utills.jwt.dto.JwtDto;
 
 public interface  AuthService {
 
@@ -12,4 +13,5 @@ public interface  AuthService {
 
     void registerUser(UserRegistrationRequest registrationDto);
 
+    JwtDto login(String email, String password);
 }

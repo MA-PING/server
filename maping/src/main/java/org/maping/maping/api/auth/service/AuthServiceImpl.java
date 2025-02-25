@@ -5,11 +5,14 @@ import lombok.RequiredArgsConstructor;
 import org.maping.maping.api.auth.dto.request.NicknameCheckRequest;
 import org.maping.maping.api.auth.dto.request.UserRegistrationRequest;
 import org.maping.maping.common.enums.expection.ErrorCode;
+import org.maping.maping.common.utills.jwt.JWTUtill;
+import org.maping.maping.common.utills.jwt.dto.JwtDto;
 import org.maping.maping.exceptions.CustomException;
 import org.maping.maping.model.user.LocalJpaEntity;
 import org.maping.maping.model.user.UserInfoJpaEntity;
 import org.maping.maping.repository.user.LocalRepository;
 import org.maping.maping.repository.user.UserRepository;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import java.time.LocalDateTime;
@@ -23,6 +26,8 @@ public class AuthServiceImpl implements AuthService {
     private final UserRepository userRepository;
     private final LocalRepository localJpaRepository;
     private final BCryptPasswordEncoder passwordEncoder;
+    private final JWTUtill jwtUtil;
+
 
     private static final String PASSWORD_REGEX = "^(?=.*[A-Za-z])(?=.*\\d)[A-Za-z\\d!@#$%^&*()_+\\-=]{6,}$";
     private static final Pattern PASSWORD_PATTERN = Pattern.compile(PASSWORD_REGEX);
@@ -88,4 +93,23 @@ public class AuthServiceImpl implements AuthService {
         userRepository.save(userInfo);
         localJpaRepository.save(local);
     }
+
+    @Override
+    public JwtDto login(String email, String password) {
+        // 이메일로 LocalJpaEntity 사용자 조회
+        LocalJpaEntity local = localJpaRepository.findByEmail(email)
+                .orElseThrow(() -> new CustomException(ErrorCode.NotFound, "사용자를 찾을 수 없습니다.", HttpStatus.NOT_FOUND));
+
+        // UserInfoJpaEntity에서 유저 네임 가져오기
+        UserInfoJpaEntity userInfo = local.getUserInfo();
+
+        // 비밀번호 검증
+        if (!passwordEncoder.matches(password, local.getPassword())) {
+            throw new CustomException(ErrorCode.Unauthorized, "비밀번호가 일치하지 않습니다.", HttpStatus.UNAUTHORIZED);
+        }
+
+        // JWT 생성 후 반환 (유저 ID를 String으로 변환)
+        return jwtUtil.generateJwtDto(String.valueOf(userInfo.getUserId()), userInfo.getUserName());
+    }
+
 }
