@@ -42,10 +42,10 @@ public class AuthController {
     public BaseResponse<String> sendVerificationCode(@RequestParam String email) {
         try {
             String authCode = mailService.sendSimpleMessage(email);
-            return new BaseResponse<>(HttpStatus.OK.value(), "메일 발송 성공", authCode);
+            return new BaseResponse<>(HttpStatus.OK.value(), "메일 발송 성공", authCode, true);
         } catch (MessagingException e) {
             log.error("메일 발송 오류: {}", e.getMessage(), e);
-            return new BaseResponse<>(HttpStatus.INTERNAL_SERVER_ERROR.value(), "메일 발송 실패", "메일 발송 실패");
+            return new BaseResponse<>(HttpStatus.INTERNAL_SERVER_ERROR.value(), "메일 발송 실패", "메일 발송 실패", false);
         }
     }
 
@@ -54,13 +54,12 @@ public class AuthController {
     @PostMapping("check-verification-code")
     public BaseResponse<String> verifyEmailCode(@RequestParam String email, @RequestParam String code) {
         if (mailService.verifyCode(email, code)) {
-            // 인증 성공 시
-            return new BaseResponse<String>(HttpStatus.OK.value(),"인증에 성공하였습니다.", "인증에 성공하였습니다.");
+            return new BaseResponse<>(HttpStatus.OK.value(), "인증에 성공하였습니다.", "인증에 성공하였습니다.", true);
         } else {
-            // 인증 실패 시
-            return new BaseResponse<String>(HttpStatus.BAD_REQUEST.value(), "인증에 실패하였습니다.", "인증에 실패하였습니다.");
+            return new BaseResponse<>(HttpStatus.BAD_REQUEST.value(), "인증 실패 (만료되었거나 잘못된 코드입니다)", "인증 실패", false);
         }
     }
+
 
     @Operation(summary = "비밀번호 검증", description = "비밀번호를 검증하는 API")
     @ResponseStatus(HttpStatus.OK)
@@ -95,7 +94,6 @@ public class AuthController {
             throw new CustomException(ErrorCode.BadRequest, "잘못된 요청입니다. 입력값을 확인해주세요.", HttpStatus.BAD_REQUEST);
         }
     }
-
 
     @Operation(summary = "회원가입", description = "사용자를 등록하는 API")
     @ResponseStatus(HttpStatus.CREATED)
