@@ -10,7 +10,7 @@ import lombok.ToString;
 @NoArgsConstructor
 @Data
 @ToString
-public class CharacterDto {
+public class CharacterDTO {
     /**
      * 캐릭터 식별자
      */

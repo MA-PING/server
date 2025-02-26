@@ -5,7 +5,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.maping.maping.api.character.service.CharacterServiceImpl;
 import org.maping.maping.common.response.BaseResponse;
-import org.maping.maping.common.utills.nexon.dto.character.CharacterInfoDto;
+import org.maping.maping.common.utills.nexon.dto.character.CharacterInfoDTO;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.http.HttpStatus;
@@ -23,7 +23,7 @@ public class CharacterController {
     @Operation(summary = "캐릭터 정보", description = "캐릭터 정보를 가져오는 API")
     @ResponseStatus(HttpStatus.OK)
     @GetMapping("character")
-    public BaseResponse<CharacterInfoDto> getCharacterInfo(@RequestParam String characterName) {
+    public BaseResponse<CharacterInfoDTO> getCharacterInfo(@RequestParam String characterName) {
         return new BaseResponse<>(HttpStatus.OK.value(), "캐릭터 정보를 가져오는데 성공하였습니다.", characterServiceImpl.getCharacterInfo(characterName));
     }
 }

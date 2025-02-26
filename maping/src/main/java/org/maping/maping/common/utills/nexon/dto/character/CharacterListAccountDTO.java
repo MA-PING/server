@@ -12,10 +12,16 @@ import java.util.List;
 @NoArgsConstructor
 @Data
 @ToString
-public class CharacterListDto {
+public class CharacterListAccountDTO {
     /**
-     * 메이플스토리 계정 목록
+     * 메이플스토리 계정 식별자
      */
-    @JsonProperty("account_list")
-    private List<CharacterListAccountDTO> accountList;
+    @JsonProperty("account_id")
+    private String accountId;
+
+    /**
+     * 캐릭터 목록
+     */
+    @JsonProperty("character_list")
+    private List<CharacterListAccountCharacterDTO> characterList;
 }

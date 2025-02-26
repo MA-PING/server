@@ -1,7 +1,7 @@
 package org.maping.maping.api.character.service;
 
 import org.maping.maping.common.utills.nexon.NEXONUtils;
-import org.maping.maping.common.utills.nexon.dto.character.CharacterInfoDto;
+import org.maping.maping.common.utills.nexon.dto.character.CharacterInfoDTO;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -13,7 +13,7 @@ public class CharacterServiceImpl implements CharacterService {
         this.nexonUtils = nexonUtils;
     }
 
-    public CharacterInfoDto getCharacterInfo(String characterName) {
+    public CharacterInfoDTO getCharacterInfo(String characterName) {
 
         return nexonUtils.getCharacterInfo(characterName);
     }

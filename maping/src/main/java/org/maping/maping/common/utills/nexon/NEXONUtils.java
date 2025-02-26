@@ -43,19 +43,19 @@ public class NEXONUtils {
     }
 
     @Operation(summary = "ocid 가져오기", description = "캐릭터 이름을 통해 ocid를 가져오는 API")
-    public CharacterDto getOcid(String characterName) {
+    public CharacterDTO getOcid(String characterName) {
         String apiUrl = "https://open.api.nexon.com/maplestory/v1/id";
         String fullUrl = UriComponentsBuilder.fromUriString(apiUrl).queryParam("character_name", characterName).build().toUriString();
 
         HttpHeaders headers = new HttpHeaders();
         headers.set("x-nxopen-api-key", Key);
 
-        ResponseEntity<CharacterDto> responseEntity = new RestTemplate().exchange(fullUrl, HttpMethod.GET, new HttpEntity<>(headers), CharacterDto.class);
+        ResponseEntity<CharacterDTO> responseEntity = new RestTemplate().exchange(fullUrl, HttpMethod.GET, new HttpEntity<>(headers), CharacterDTO.class);
         return responseEntity.getBody();
     }
 
     @Operation(summary = "캐릭터 기본 정보 가져오기", description = "ocid를 통해 캐릭터의 기본 정보를 가져오는 API")
-    public CharacterBasicDto getCharcterBasic(String ocid) {
+    public CharacterBasicDTO getCharcterBasic(String ocid) {
         String apiUrl = "https://open.api.nexon.com/maplestory/v1/character/basic";
         String fullUrl = UriComponentsBuilder.fromUriString(apiUrl).queryParam("ocid", ocid).build().toUriString();
 
@@ -64,24 +64,21 @@ public class NEXONUtils {
         headers.set("x-nxopen-api-key", Key);
 
         // API 호출
-        ResponseEntity<CharacterBasicDto> response = new RestTemplate().exchange(fullUrl, HttpMethod.GET, new HttpEntity<>(headers), CharacterBasicDto.class);
+        ResponseEntity<CharacterBasicDTO> response = new RestTemplate().exchange(fullUrl, HttpMethod.GET, new HttpEntity<>(headers), CharacterBasicDTO.class);
 
         // 응답 반환
         return response.getBody(); // API 응답 그대로 반환
     }
 
     @Operation(summary = "캐릭터 리스트 가져오기", description = "API 키를 통해 캐릭터 리스트를 가져오는 API")
-    public ResponseEntity<String> getCharcterList(String apiKey) {
-        try {
-            String apiUrl = "https://open.api.nexon.com/maplestory/v1/character/list";
+    public CharacterListDto getCharcterList(String apiKey) {
+        String apiUrl = "https://open.api.nexon.com/maplestory/v1/character/list";
 
-            HttpHeaders headers = new HttpHeaders();
-            headers.set("x-nxopen-api-key", Key);
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("x-nxopen-api-key", Key);
 
-            return new RestTemplate().exchange(apiUrl, HttpMethod.GET, new HttpEntity<>(headers), String.class);
-        } catch (Exception e) {
-            throw new CustomException(ErrorCode.Unauthorized, "캐릭터 리스트 가져오기를 실패했습니다.", HttpStatus.UNAUTHORIZED);
-        }
+        ResponseEntity<CharacterListDto> response = new RestTemplate().exchange(apiUrl, HttpMethod.GET, new HttpEntity<>(headers), CharacterListDto.class);
+        return response.getBody();
     }
 
     @Operation(summary = "캐릭터 스탯 가져오기", description = "ocid를 통해 캐릭터의 스탯을 가져오는 API")
@@ -306,9 +303,9 @@ public class NEXONUtils {
     }
 
     @Operation(summary = "캐릭터 정보 가져오기", description = "캐릭터 이름을 통해 캐릭터의 기본 정보를 가져오는 API")
-    public CharacterInfoDto getCharacterInfo(String characterName) {
-        CharacterInfoDto characterInfo = new CharacterInfoDto();
-        CharacterDto characterDto = getOcid(characterName);
+    public CharacterInfoDTO getCharacterInfo(String characterName) {
+        CharacterInfoDTO characterInfo = new CharacterInfoDTO();
+        CharacterDTO characterDto = getOcid(characterName);
         log.info("ocid: {}", characterDto.getOcid());
         String ocid = characterDto.getOcid();
         characterInfo.setOcid(ocid);

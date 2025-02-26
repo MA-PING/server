@@ -19,9 +19,9 @@ import org.maping.maping.common.utills.nexon.dto.union.UnionRaiderDTO;
 @NoArgsConstructor
 @Data
 @ToString
-public class CharacterInfoDto {
+public class CharacterInfoDTO {
     private String Ocid;
-    private CharacterBasicDto Basic;
+    private CharacterBasicDTO Basic;
     private CharacterStatDto Stat;
     private CharacterHyperStatDTO HyperStat;
     private CharacterAbilityDTO Ability;
