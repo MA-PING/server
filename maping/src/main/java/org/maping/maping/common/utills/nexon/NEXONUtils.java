@@ -24,6 +24,8 @@ import org.maping.maping.common.utills.nexon.dto.union.UnionArtifactDTO;
 import org.maping.maping.common.utills.nexon.dto.union.UnionDTO;
 import org.maping.maping.common.utills.nexon.dto.union.UnionRaiderDTO;
 import org.maping.maping.exceptions.CustomException;
+import org.maping.maping.model.search.CharacterSearchJpaEntity;
+import org.maping.maping.repository.search.CharacterSearchRepository;
 import org.springframework.http.*;
 import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
@@ -33,9 +35,12 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 import org.springframework.beans.factory.annotation.Value;
 
-import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
@@ -47,9 +52,11 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 public class NEXONUtils {
 
     public final String Key;
+    private final CharacterSearchRepository characterSearchRepository;
 
-    public NEXONUtils(@Value("${spring.nexon.key2}") String key) {
+    public NEXONUtils(@Value("${spring.nexon.key}") String key, CharacterSearchRepository characterSearchRepository) {
         this.Key = key;
+        this.characterSearchRepository = characterSearchRepository;
     }
 
     @Operation(summary = "ocid 가져오기", description = "캐릭터 이름을 통해 ocid를 가져오는 API")
@@ -68,11 +75,6 @@ public class NEXONUtils {
 
         HttpHeaders headers = new HttpHeaders();
         headers.set("x-nxopen-api-key", Key);
-        log.info(Key);
-        log.info(fullUrl);
-        log.info(headers.toString());
-//        ResponseEntity<CharacterDTO> responseEntity = new RestTemplate().exchange(fullUrl, HttpMethod.GET, new HttpEntity<>(headers), CharacterDTO.class);
-//        return responseEntity.getBody();
         try {
             ResponseEntity<CharacterDTO> responseEntity = new RestTemplate().exchange(fullUrl, HttpMethod.GET, new HttpEntity<>(headers), CharacterDTO.class);
             return responseEntity.getBody();
@@ -87,8 +89,6 @@ public class NEXONUtils {
         String apiUrl = "https://open.api.nexon.com/maplestory/v1/character/basic";
         String fullUrl = UriComponentsBuilder.fromUriString(apiUrl).queryParam("ocid", ocid).build().toUriString();
 
-        log.info("getCharacterBasic: {}", ocid);
-        log.info("fullUrl: {}", fullUrl);
         HttpHeaders headers = new HttpHeaders();
         headers.set("x-nxopen-api-key", Key);
 
@@ -368,7 +368,116 @@ public class NEXONUtils {
         characterInfo.setUnionRaider(unionRaiderFuture.join());
         characterInfo.setUnionArtifact(unionArtifactFuture.join());
 
+
         return characterInfo;
     }
 
+    public String getWorldImgUrl(String worldName) {
+        if(Objects.equals(worldName, "노바")) {
+            return "https://lh3.google.com/u/0/d/1Wx3lx6-Qe8Hm8S7lNwlNGtiSemJ5X9Pv=w1920-h968-iv1";
+        }else if(Objects.equals(worldName, "레드")) {
+            return "https://lh3.google.com/u/0/d/1a9YYUARXdVzUUu-aUarHgyJdqNBx5Mbf=w1920-h968-iv1";
+        }else if(Objects.equals(worldName, "루나")) {
+            return "https://lh3.google.com/u/0/d/1mZPYCSxll88VLUr4cGFVEGhb_kJ5k6CJ=w2000-h1668-iv1";
+        }else if(Objects.equals(worldName, "베라")) {
+            return "https://lh3.google.com/u/0/d/1wJiCzHW8Rk1nr7JsHZUcsBtoiMRT8Isz=w2000-h1668-iv1";
+        }else if(Objects.equals(worldName, "스카니아")) {
+            return "https://lh3.google.com/u/0/d/1fVg6ThMqPJsEg9KuypXHUtUFnlboUwFN=w2000-h1668-iv1";
+        }else if(Objects.equals(worldName, "아케인")) {
+            return "https://lh3.google.com/u/0/d/1IcE7Xx1RUTJTF6HGsX40pptB9kXEmZC3=w2000-h1668-iv1";
+        }else if(Objects.equals(worldName, "엘리시움")) {
+            return "https://lh3.google.com/u/0/d/1cLtG3h4EKuMzhtzG4PkJhQBTVatZQssE=w2000-h1668-iv1";
+        }else if(Objects.equals(worldName, "오로라")) {
+            return "https://lh3.google.com/u/0/d/1tUc4BMDtIUAUIKH47nkZwbQcFqta_B-T=w2000-h1668-iv1";
+        }else if(Objects.equals(worldName, "유니온")) {
+            return "https://lh3.google.com/u/0/d/1RiRArYAAJ3FDOfInklir6vficLOGAT8q=w1920-h968-iv1";
+        }else if(Objects.equals(worldName, "이노시스")) {
+            return "https://lh3.google.com/u/0/d/1W7mw46omb1PjNFA61W6InL3n3fT5OnWn=w2000-h1668-iv1";
+        }else if(Objects.equals(worldName, "제니스")) {
+            return "https://lh3.google.com/u/0/d/1Y7kwZO5DeE3PouKnkTrQYGKiNavKpwUz=w2000-h1668-iv1";
+        }else if(Objects.equals(worldName, "크로아")) {
+            return "https://lh3.google.com/u/0/d/1HTAKqVQ8QxFrWZO6mkEW9_pdy314zSSN=w2000-h1668-iv1";
+        } else if(Objects.equals(worldName, "에오스")) {
+            return "https://lh3.google.com/u/0/d/1WKmBiemmm5LHCdt6VJ4pDj5HlviWWxkI=w1920-h968-iv1";
+        } else if(Objects.equals(worldName, "핼리오스")) {
+            return "https://lh3.google.com/u/0/d/11kV1yU4St0EQIx_u26P3_lQ-Xf4v0_-j=w2000-h1668-iv1";
+        }else{
+            return new CustomException(ErrorCode.NotFound, worldName).getMessage();
+        }
+    }
+
+    public void setCharacterInfo(CharacterBasicDTO characterInfo) {
+        String characterName = characterInfo.getCharacterName();
+        log.info("setCharacterInfo : {}", characterName);
+        Optional<CharacterSearchJpaEntity> characterSearch = characterSearchRepository.findByCharacterName(characterName);
+
+        if(characterSearch.isPresent()){
+            CharacterSearchJpaEntity entity = CharacterSearchJpaEntity.builder()
+                    .id(characterSearch.get().getId())
+                    .characterName(characterInfo.getCharacterName())
+                    .characterLevel(characterInfo.getCharacterLevel())
+                    .worldName(characterInfo.getWorldName())
+                    .characterClass(characterInfo.getCharacterClass())
+                    .image(characterInfo.getCharacterImage())
+                    .worldImg(getWorldImgUrl(characterInfo.getWorldName()))
+                    .jaso(separateJaso(characterInfo.getCharacterName()).toString())
+                    .count(characterSearch.get().getCount() + 1)
+                    .createdAt(characterSearch.get().getCreatedAt())
+                    .updatedAt(LocalDateTime.now())
+                    .build();
+            characterSearchRepository.save(entity);
+        }else{
+            CharacterSearchJpaEntity entity = CharacterSearchJpaEntity.builder()
+                    .characterName(characterInfo.getCharacterName())
+                    .characterLevel(characterInfo.getCharacterLevel())
+                    .worldName(characterInfo.getWorldName())
+                    .characterClass(characterInfo.getCharacterClass())
+                    .image(characterInfo.getCharacterImage())
+                    .worldImg(getWorldImgUrl(characterInfo.getWorldName()))
+                    .jaso(separateJaso(characterInfo.getCharacterName()).toString())
+                    .count(0)
+                    .createdAt(LocalDateTime.now())
+                    .updatedAt(LocalDateTime.now())
+                    .build();
+            characterSearchRepository.save(entity);
+        }
+    }
+    // 자소 분리 함수
+    public static List<String> separateJaso(String input) {
+        log.info("separateJaso: {}", input);
+        List<String> result = new ArrayList<>();
+
+        for (char ch : input.toCharArray()) {
+            // 한글 자모 분해
+            if (isHangul(ch)) {
+                String[] jaso = decomposeHangul(ch);
+                for (String j : jaso) {
+                    result.add(j);
+                }
+            } else {
+                result.add(String.valueOf(ch)); // 한글이 아닌 경우 그대로 추가
+            }
+        }
+        return result;
+    }
+
+    // 한글 여부 확인
+    private static boolean isHangul(char ch) {
+        return ch >= 0xAC00 && ch <= 0xD7A3; // 가 ~ 힣 범위
+    }
+
+    // 한글 자모 분해
+    private static String[] decomposeHangul(char hangul) {
+        int base = hangul - 0xAC00; // '가'의 유니코드
+        int cho = base / (21 * 28); // 초성
+        int jung = (base % (21 * 28)) / 28; // 중성
+        int jong = base % 28; // 종성
+
+        String[] jaso = new String[3];
+        jaso[0] = String.valueOf((char) (0x1100 + cho)); // 초성
+        jaso[1] = String.valueOf((char) (0x1161 + jung)); // 중성
+        jaso[2] = jong > 0 ? String.valueOf((char) (0x11A7 + jong)) : ""; // 종성
+
+        return jaso;
+    }
 }

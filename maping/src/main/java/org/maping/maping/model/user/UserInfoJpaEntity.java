@@ -6,6 +6,8 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
+import java.util.LinkedHashSet;
+import java.util.Set;
 
 @Entity
 @Table(name = "USER_INFO_TB")
@@ -32,5 +34,6 @@ public class UserInfoJpaEntity {
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;
+
 
 }

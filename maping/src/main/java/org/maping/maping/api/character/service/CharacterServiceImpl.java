@@ -6,6 +6,8 @@ import org.maping.maping.common.utills.nexon.dto.character.CharacterDTO;
 import org.maping.maping.common.utills.nexon.dto.character.CharacterInfoDTO;
 import org.maping.maping.model.ocid.OcidJpaEntity;
 import org.maping.maping.repository.ocid.OcidRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.net.URLEncoder;
@@ -14,7 +16,7 @@ import java.nio.charset.StandardCharsets;
 @Slf4j
 @Service
 public class CharacterServiceImpl implements CharacterService {
-
+    @Autowired
     private final NEXONUtils nexonUtils;
     private final OcidRepository ocidRepository;
 
@@ -34,6 +36,8 @@ public class CharacterServiceImpl implements CharacterService {
         if (ocid == null || ocid.trim().isEmpty()) {
             throw new IllegalArgumentException("유효하지 않은 ocid입니다.");
         }
-        return nexonUtils.getCharacterInfo(ocid);
+        CharacterInfoDTO characterInfo = nexonUtils.getCharacterInfo(ocid);
+        new Thread(() -> nexonUtils.setCharacterInfo(characterInfo.getBasic())).start();
+        return characterInfo;
     }
 }
