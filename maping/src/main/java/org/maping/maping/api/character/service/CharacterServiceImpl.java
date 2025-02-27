@@ -1,11 +1,16 @@
 package org.maping.maping.api.character.service;
 
 import lombok.extern.slf4j.Slf4j;
+import org.maping.maping.api.character.dto.request.OcidRequest;
+import org.maping.maping.api.character.dto.response.CharacterListResponse;
 import org.maping.maping.common.utills.nexon.NEXONUtils;
 import org.maping.maping.common.utills.nexon.dto.character.CharacterDTO;
 import org.maping.maping.common.utills.nexon.dto.character.CharacterInfoDTO;
+import org.maping.maping.common.utills.nexon.dto.character.CharacterListDto;
 import org.maping.maping.model.ocid.OcidJpaEntity;
+import org.maping.maping.model.user.UserApiJpaEntity;
 import org.maping.maping.repository.ocid.OcidRepository;
+import org.maping.maping.repository.user.UserApiRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
@@ -18,11 +23,11 @@ import java.nio.charset.StandardCharsets;
 public class CharacterServiceImpl implements CharacterService {
     @Autowired
     private final NEXONUtils nexonUtils;
-    private final OcidRepository ocidRepository;
+    private final UserApiRepository UserApiRepository;
 
-    public CharacterServiceImpl(NEXONUtils nexonUtils, OcidRepository ocidRepository) {
+    public CharacterServiceImpl(NEXONUtils nexonUtils, org.maping.maping.repository.user.UserApiRepository userApiRepository) {
         this.nexonUtils = nexonUtils;
-        this.ocidRepository = ocidRepository;
+        UserApiRepository = userApiRepository;
     }
 
     public CharacterInfoDTO getCharacterInfo(String characterName) {
@@ -36,8 +41,31 @@ public class CharacterServiceImpl implements CharacterService {
         if (ocid == null || ocid.trim().isEmpty()) {
             throw new IllegalArgumentException("유효하지 않은 ocid입니다.");
         }
-        CharacterInfoDTO characterInfo = nexonUtils.getCharacterInfo(ocid);
-        new Thread(() -> nexonUtils.setCharacterInfo(characterInfo.getBasic())).start();
-        return characterInfo;
+        return nexonUtils.getCharacterInfo(ocid);
+    }
+
+    @Override
+    public CharacterListResponse getApiCharacterList(OcidRequest apiKey) {
+        log.info(apiKey.getApiKey());
+        CharacterListDto characterListDto = nexonUtils.getCharacterList(apiKey.getApiKey());
+        CharacterInfoDTO characterInfoDTO = nexonUtils.getCharacterInfo(characterListDto.getAccountList().getFirst().getCharacterList().getFirst().getOcid());
+        CharacterListResponse characterListResponse = new CharacterListResponse();
+        characterListResponse.setCharacterList(characterListDto);
+        characterListResponse.setCharacterInfo(characterInfoDTO);
+        return characterListResponse;
+    }
+
+    @Override
+    public CharacterListResponse getCharacterList(Long userId) {
+//        UserApiJpaEntity userApiJpaEntity = UserApiRepository.findByUserId(userId);
+//        CharacterListResponse characterListResponse = new CharacterListResponse();
+//        characterListResponse.setCharacterList(characterListDto);
+//        characterListResponse.setCharacterInfo(characterInfoDTO);
+//        return characterListResponse;
+        return null;
+    }
+
+    public UserApiRepository getUserApiRepository() {
+        return UserApiRepository;
     }
 }

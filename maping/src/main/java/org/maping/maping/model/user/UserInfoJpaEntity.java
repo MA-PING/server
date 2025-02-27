@@ -36,4 +36,7 @@ public class UserInfoJpaEntity {
     private LocalDateTime createdAt;
 
 
+    @OneToOne(mappedBy = "userInfoTb")
+    private UserApiJpaEntity userApiTb;
+
 }

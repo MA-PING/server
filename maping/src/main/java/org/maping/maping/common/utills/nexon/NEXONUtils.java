@@ -93,7 +93,9 @@ public class NEXONUtils {
         headers.set("x-nxopen-api-key", Key);
 
         ResponseEntity<CharacterBasicDTO> response = new RestTemplate().exchange(fullUrl, HttpMethod.GET, new HttpEntity<>(headers), CharacterBasicDTO.class);
-
+        if (response.getStatusCode() != HttpStatus.OK) {
+            throw new CustomException(ErrorCode.NotFound, "api 호출 실패");
+        }
         return response.getBody();
     }
 
@@ -101,7 +103,7 @@ public class NEXONUtils {
     public CharacterListDto getCharacterList(@NotBlank String apiKey) {
         String apiUrl = "https://open.api.nexon.com/maplestory/v1/character/list";
         HttpHeaders headers = new HttpHeaders();
-        headers.set("x-nxopen-api-key", Key);
+        headers.set("x-nxopen-api-key", apiKey);
 
         ResponseEntity<CharacterListDto> response = new RestTemplate().exchange(apiUrl, HttpMethod.GET, new HttpEntity<>(headers), CharacterListDto.class);
         return response.getBody();
@@ -333,40 +335,39 @@ public class NEXONUtils {
         CharacterInfoDTO characterInfo = new CharacterInfoDTO();
         log.info("getCharacterInfo: {}", ocid);
 
-        // 비동기 호출을 사용하여 각 정보를 가져옵니다.
-        CompletableFuture<CharacterBasicDTO> basicFuture = CompletableFuture.supplyAsync(() -> getCharacterBasic(ocid));
-        CompletableFuture<CharacterStatDto> statFuture = CompletableFuture.supplyAsync(() -> getCharacterStat(ocid));
-        CompletableFuture<CharacterHyperStatDTO> hyperStatFuture = CompletableFuture.supplyAsync(() -> getCharacterHyperStat(ocid));
-        CompletableFuture<CharacterAbilityDTO> abilityFuture = CompletableFuture.supplyAsync(() -> getCharacterAbility(ocid));
-        CompletableFuture<CharacterItemEquipmentDTO> itemEquipmentFuture = CompletableFuture.supplyAsync(() -> getCharacterItemEquip(ocid));
-        CompletableFuture<CharacterSymbolEquipmentDTO> symbolEquipmentFuture = CompletableFuture.supplyAsync(() -> getCharacterSymbolEquipment(ocid));
-        CompletableFuture<CharacterSkillDTO> skill5Future = CompletableFuture.supplyAsync(() -> getCharacterSkill5(ocid, 5));
-        CompletableFuture<CharacterSkillDTO> skill6Future = CompletableFuture.supplyAsync(() -> getCharacterSkill5(ocid, 6));
-        CompletableFuture<CharacterLinkSkillDTO> linkSkillFuture = CompletableFuture.supplyAsync(() -> getCharacterLinkSkill(ocid));
-        CompletableFuture<CharacterVMatrixDTO> vMatrixFuture = CompletableFuture.supplyAsync(() -> getCharacterVmatrix(ocid));
-        CompletableFuture<CharacterHexaMatrixDTO> hexaMatrixFuture = CompletableFuture.supplyAsync(() -> getCharacterHexamatrix(ocid));
-        CompletableFuture<CharacterHexaMatrixStatDTO> hexaMatrixStatFuture = CompletableFuture.supplyAsync(() -> getCharacterHexamatrixStat(ocid));
-        CompletableFuture<UnionDTO> unionFuture = CompletableFuture.supplyAsync(() -> getUnion(ocid));
-        CompletableFuture<UnionRaiderDTO> unionRaiderFuture = CompletableFuture.supplyAsync(() -> getUnionRaider(ocid));
-        CompletableFuture<UnionArtifactDTO> unionArtifactFuture = CompletableFuture.supplyAsync(() -> getUnionArtifact(ocid));
+        CompletableFuture<CharacterBasicDTO> basic = CompletableFuture.supplyAsync(() -> getCharacterBasic(ocid));
+        CompletableFuture<CharacterStatDto> stat = CompletableFuture.supplyAsync(() -> getCharacterStat(ocid));
+        CompletableFuture<CharacterHyperStatDTO> hyperStat = CompletableFuture.supplyAsync(() -> getCharacterHyperStat(ocid));
+        CompletableFuture<CharacterAbilityDTO> ability = CompletableFuture.supplyAsync(() -> getCharacterAbility(ocid));
+        CompletableFuture<CharacterItemEquipmentDTO> itemEquipment = CompletableFuture.supplyAsync(() -> getCharacterItemEquip(ocid));
+        CompletableFuture<CharacterSymbolEquipmentDTO> symbolEquipment = CompletableFuture.supplyAsync(() -> getCharacterSymbolEquipment(ocid));
+        CompletableFuture<CharacterSkillDTO> skill5 = CompletableFuture.supplyAsync(() -> getCharacterSkill5(ocid, 5));
+        CompletableFuture<CharacterSkillDTO> skill6 = CompletableFuture.supplyAsync(() -> getCharacterSkill5(ocid, 6));
+        CompletableFuture<CharacterLinkSkillDTO> linkSkill = CompletableFuture.supplyAsync(() -> getCharacterLinkSkill(ocid));
+        CompletableFuture<CharacterVMatrixDTO> vMatrix = CompletableFuture.supplyAsync(() -> getCharacterVmatrix(ocid));
+        CompletableFuture<CharacterHexaMatrixDTO> hexaMatrix = CompletableFuture.supplyAsync(() -> getCharacterHexamatrix(ocid));
+        CompletableFuture<CharacterHexaMatrixStatDTO> hexaMatrixStat = CompletableFuture.supplyAsync(() -> getCharacterHexamatrixStat(ocid));
+        CompletableFuture<UnionDTO> union = CompletableFuture.supplyAsync(() -> getUnion(ocid));
+        CompletableFuture<UnionRaiderDTO> unionRaider = CompletableFuture.supplyAsync(() -> getUnionRaider(ocid));
+        CompletableFuture<UnionArtifactDTO> unionArtifact = CompletableFuture.supplyAsync(() -> getUnionArtifact(ocid));
 
-        // 모든 비동기 호출의 결과를 기다립니다.
         characterInfo.setOcid(ocid);
-        characterInfo.setBasic(basicFuture.join());
-        characterInfo.setStat(statFuture.join());
-        characterInfo.setHyperStat(hyperStatFuture.join());
-        characterInfo.setAbility(abilityFuture.join());
-        characterInfo.setItemEquipment(itemEquipmentFuture.join());
-        characterInfo.setSymbolEquipment(symbolEquipmentFuture.join());
-        characterInfo.setSkill5(skill5Future.join());
-        characterInfo.setSkill6(skill6Future.join());
-        characterInfo.setLinkSkill(linkSkillFuture.join());
-        characterInfo.setVMatrix(vMatrixFuture.join());
-        characterInfo.setHexaMatrix(hexaMatrixFuture.join());
-        characterInfo.setHexaMatrixStat(hexaMatrixStatFuture.join());
-        characterInfo.setUnion(unionFuture.join());
-        characterInfo.setUnionRaider(unionRaiderFuture.join());
-        characterInfo.setUnionArtifact(unionArtifactFuture.join());
+        characterInfo.setBasic(basic.join());
+        new Thread(() -> setCharacterInfo(basic.join())).start();
+        characterInfo.setStat(stat.join());
+        characterInfo.setHyperStat(hyperStat.join());
+        characterInfo.setAbility(ability.join());
+        characterInfo.setItemEquipment(itemEquipment.join());
+        characterInfo.setSymbolEquipment(symbolEquipment.join());
+        characterInfo.setSkill5(skill5.join());
+        characterInfo.setSkill6(skill6.join());
+        characterInfo.setLinkSkill(linkSkill.join());
+        characterInfo.setVMatrix(vMatrix.join());
+        characterInfo.setHexaMatrix(hexaMatrix.join());
+        characterInfo.setHexaMatrixStat(hexaMatrixStat.join());
+        characterInfo.setUnion(union.join());
+        characterInfo.setUnionRaider(unionRaider.join());
+        characterInfo.setUnionArtifact(unionArtifact.join());
 
 
         return characterInfo;
@@ -478,6 +479,7 @@ public class NEXONUtils {
         jaso[1] = String.valueOf((char) (0x1161 + jung)); // 중성
         jaso[2] = jong > 0 ? String.valueOf((char) (0x11A7 + jong)) : ""; // 종성
 
+        log.info("decomposeHangul: {}", jaso);
         return jaso;
     }
 }
