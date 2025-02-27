@@ -50,10 +50,9 @@ public class CharacterController {
     @Operation(summary = "로그인용 캐릭터 정보", description = "로그인으로 캐릭터 정보를 가져오는 API")
     @ResponseStatus(HttpStatus.OK)
     @GetMapping("character/list")
-    public String getCharacterList(HttpServletRequest request) {
-        String userId = jwtUtil.getUserId(request);
+    public BaseResponse<CharacterListResponse> getCharacterList(HttpServletRequest request) {
+        Long userId = Long.valueOf(jwtUtil.getUserId(request));
         log.info("userId: {}", userId);
-//        return new BaseResponse<>(HttpStatus.OK.value(), "캐릭터 정보를 가져오는데 성공하였습니다.", characterServiceImpl.getCharacterList(userId));
-        return userId;
+        return new BaseResponse<>(HttpStatus.OK.value(), "캐릭터 정보를 가져오는데 성공하였습니다.", characterServiceImpl.getCharacterList(userId));
     }
 }

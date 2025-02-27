@@ -17,6 +17,7 @@ import org.springframework.stereotype.Service;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.Optional;
 
 @Slf4j
 @Service
@@ -57,15 +58,13 @@ public class CharacterServiceImpl implements CharacterService {
 
     @Override
     public CharacterListResponse getCharacterList(Long userId) {
-//        UserApiJpaEntity userApiJpaEntity = UserApiRepository.findByUserId(userId);
-//        CharacterListResponse characterListResponse = new CharacterListResponse();
-//        characterListResponse.setCharacterList(characterListDto);
-//        characterListResponse.setCharacterInfo(characterInfoDTO);
-//        return characterListResponse;
-        return null;
-    }
-
-    public UserApiRepository getUserApiRepository() {
-        return UserApiRepository;
+        Optional<UserApiJpaEntity> userApiJpaEntity = UserApiRepository.findById(userId);
+        UserApiJpaEntity user = userApiJpaEntity.orElseThrow(() -> new IllegalArgumentException("유효하지 않은 유저입니다."));
+        CharacterListDto characterListDto = nexonUtils.getCharacterList(user.getUserApiInfo());
+        CharacterInfoDTO characterInfoDTO = nexonUtils.getCharacterInfo(characterListDto.getAccountList().getFirst().getCharacterList().getFirst().getOcid());
+        CharacterListResponse characterListResponse = new CharacterListResponse();
+        characterListResponse.setCharacterList(characterListDto);
+        characterListResponse.setCharacterInfo(characterInfoDTO);
+        return characterListResponse;
     }
 }

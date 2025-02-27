@@ -436,7 +436,7 @@ public class NEXONUtils {
                     .image(characterInfo.getCharacterImage())
                     .worldImg(getWorldImgUrl(characterInfo.getWorldName()))
                     .jaso(separateJaso(characterInfo.getCharacterName()).toString())
-                    .count(0)
+                    .count(1)
                     .createdAt(LocalDateTime.now())
                     .updatedAt(LocalDateTime.now())
                     .build();
