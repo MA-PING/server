@@ -14,4 +14,5 @@ public interface  AuthService {
     void registerUser(UserRegistrationRequest registrationDto);
 
     JwtDto login(String email, String password);
+
 }

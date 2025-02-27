@@ -1,5 +1,4 @@
 package org.maping.maping.api.auth.service;
-import com.sun.jna.platform.win32.Netapi32Util;
 import lombok.Builder;
 import lombok.RequiredArgsConstructor;
 import org.maping.maping.api.auth.dto.request.NicknameCheckRequest;
@@ -15,9 +14,8 @@ import org.maping.maping.repository.user.UserRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import java.time.LocalDateTime;
+
 import java.util.regex.Pattern;
-import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @Builder
@@ -111,5 +109,4 @@ public class AuthServiceImpl implements AuthService {
         // JWT 생성 후 반환 (유저 ID를 String으로 변환)
         return jwtUtil.generateJwtDto(String.valueOf(userInfo.getUserId()), userInfo.getUserName());
     }
-
 }

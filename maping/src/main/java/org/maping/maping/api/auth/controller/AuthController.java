@@ -2,20 +2,21 @@ package org.maping.maping.api.auth.controller;
 
 import groovy.util.logging.Slf4j;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
 import org.maping.maping.api.auth.dto.request.LoginRequest;
 import org.maping.maping.api.auth.dto.request.NicknameCheckRequest;
 import org.maping.maping.api.auth.dto.request.PasswordRequest;
 import org.maping.maping.api.auth.dto.request.UserRegistrationRequest;
+import org.maping.maping.api.auth.dto.response.OAuthLoginResponse;
 import org.maping.maping.api.auth.service.AuthService;
 import org.maping.maping.api.auth.service.MailService;
+import org.maping.maping.api.auth.service.OAuthService;
 import org.maping.maping.common.enums.expection.ErrorCode;
 import org.maping.maping.common.utills.jwt.dto.JwtDto;
 import org.maping.maping.exceptions.CustomException;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.http.HttpStatus;
@@ -33,7 +34,7 @@ import static org.hibernate.query.sqm.tree.SqmNode.log;
 @RequestMapping("/api/v1/auth")
 @RequiredArgsConstructor
 public class AuthController {
-
+    private final OAuthService oAuthService;
     private final MailService mailService;
     private final AuthService authService;
     private static final Logger logger = LoggerFactory.getLogger(AuthController.class);
@@ -52,6 +53,22 @@ public class AuthController {
         JwtDto jwtDto = authService.login(loginRequest.getEmail(), loginRequest.getPassword());
         return new BaseResponse<>(HttpStatus.OK.value(), "로그인 성공", jwtDto, true);
     }
+
+    @Operation(summary = "네이버 로그인", description = "네이버 로그인 API")
+    @ResponseStatus(HttpStatus.OK) // 성공적으로 처리된 경우 HTTP 200 OK 상태 반환
+    @PostMapping("/signup/naver") // POST 요청을 처리하며 "/signup/naver" 경로에 매핑
+    public BaseResponse<OAuthLoginResponse> naverLogin(
+            @Parameter(description = "네이버 요청을 통해 받아온 엑세스 토큰")
+            @RequestParam("code") String code, // 클라이언트로부터 엑세스 토큰을 받는 파라미터
+            @Parameter(description = "네이버 요청 시 생성된 상태값")
+            @RequestParam("state") String state // 클라이언트로부터 상태값을 받는 파라미터
+    ) {
+        // oAuthService의 naverLogin 메서드를 호출하여 엑세스 토큰과 상태값으로 로그인 처리
+        OAuthLoginResponse response = oAuthService.naverLogin(code, state);
+        // 결과를 BaseResponse로 감싸서 반환
+        return new BaseResponse<>(HttpStatus.OK.value(),"네이버 로그인 성공",response,true);
+    }
+
 
     @Operation(summary = "이메일 인증번호 발송", description = "이메일 인증번호를 발송하는 API")
     @ResponseStatus(HttpStatus.OK)

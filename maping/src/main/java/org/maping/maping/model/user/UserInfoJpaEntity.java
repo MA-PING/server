@@ -35,4 +35,7 @@ public class UserInfoJpaEntity {
 
     @OneToOne(mappedBy = "userInfo", cascade = CascadeType.ALL)
     private LocalJpaEntity local; // Local을 LocalJpaEntity로 수정
+
+    @OneToOne(mappedBy = "userInfo", cascade = CascadeType.ALL)
+    private NaverJpaEntity naver; // Local을 LocalJpaEntity로 수정
 }
