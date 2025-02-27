@@ -2,6 +2,7 @@ package org.maping.maping.api.auth.service;
 
 import lombok.RequiredArgsConstructor;
 import org.maping.maping.common.utills.ULID.ULIDUtill;
+import org.maping.maping.common.utills.users.oauth.google.dto.GoogleUserInfoResponse;
 import org.maping.maping.common.utills.users.oauth.naver.NaverUtil;
 import org.maping.maping.external.oauth.naver.dto.response.NaverUserInfoResponse;
 import org.maping.maping.repository.user.UserRepository;
@@ -15,6 +16,7 @@ import org.maping.maping.exceptions.CustomException;
 import org.maping.maping.model.user.LocalJpaEntity;
 import org.maping.maping.model.user.UserInfoJpaEntity;
 import org.maping.maping.repository.user.LocalRepository;
+import org.maping.maping.common.utills.users.oauth.google.GoogleUtil;
 
 import java.util.Optional;
 
@@ -22,6 +24,7 @@ import java.util.Optional;
 @Service
 @RequiredArgsConstructor
 public class OAuthServiceImpl implements OAuthService {
+    private final GoogleUtil googleUtil;
     private final NaverUtil naverUtil;
     private final JWTUtill jwtUtil;
     private final UserRepository userRepository;
@@ -61,6 +64,43 @@ public class OAuthServiceImpl implements OAuthService {
                 .build();
     }
 
+        @Override
+        public OAuthLoginResponse googleLogin(String code) {
+            // Google에서 사용자 정보를 가져옵니다.
+            String accessToken = googleUtil.getAccessToken(code);
+            GoogleUserInfoResponse userInfo = googleUtil.getUserInfo(accessToken);
 
+            return processOAuthLogin(userInfo.getEmail(), userInfo.getName(), userInfo.getPicture());
+        }
+
+        private OAuthLoginResponse processOAuthLogin(String email, String name, String profileImage) {
+            Optional<UserInfoJpaEntity> optionalUser = userRepository.findByEmail(email);
+
+            // 이미 가입된 회원이라면 JWT 반환
+            if (optionalUser.isPresent()) {
+                JwtDto jwtDto = jwtUtil.generateJwtDto(String.valueOf(optionalUser.get().getUserId()), null);
+                return OAuthLoginResponse.builder()
+                        .isNewMember(false)
+                        .jwtDto(jwtDto)
+                        .build();
+            }
+
+            // 신규 회원 처리
+            UserInfoJpaEntity user = UserInfoJpaEntity.builder()
+                    .email(email)
+                    .userName(name)
+                    .iconic(null) // Google은 프로필 이미지 제공
+                    .naver(null)
+                    .local(null)
+                    .build();
+
+            userRepository.save(user);
+
+            JwtDto jwtDto = jwtUtil.generateJwtDto(String.valueOf(user.getUserId()), null);
+            return OAuthLoginResponse.builder()
+                    .isNewMember(true)
+                    .jwtDto(jwtDto)
+                    .build();
+        }
 
 }

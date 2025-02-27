@@ -69,6 +69,17 @@ public class AuthController {
         return new BaseResponse<>(HttpStatus.OK.value(),"네이버 로그인 성공",response,true);
     }
 
+    @Operation(summary = "구글 로그인", description = "구글 로그인 API")
+    @ResponseStatus(HttpStatus.OK)
+    @PostMapping("/signup/google")
+    public BaseResponse<OAuthLoginResponse> googleLogin(
+            @Parameter(description = "구글 요청을 통해 받아온 엑세스 토큰")
+            @RequestParam("code") String code
+    ) {
+        OAuthLoginResponse response = oAuthService.googleLogin(code);
+        return new BaseResponse<>(HttpStatus.OK.value(), "구글 로그인 성공", response, true);
+    }
+
 
     @Operation(summary = "이메일 인증번호 발송", description = "이메일 인증번호를 발송하는 API")
     @ResponseStatus(HttpStatus.OK)

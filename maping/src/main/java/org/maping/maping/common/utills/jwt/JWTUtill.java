@@ -118,7 +118,7 @@ public class JWTUtill {
 
     public String getUserId(HttpServletRequest request) {
         String resolveToken = resolveToken(request);
-        if(isValidAccessToken(resolveToken)) {
+        if(!isValidAccessToken(resolveToken)) {
             return putUserMDC(getClaims(resolveToken));
         }else{
             throw new CustomException(ErrorCode.Unauthorized, "JWT 토큰이 유효하지 않습니다.", HttpStatus.UNAUTHORIZED);
