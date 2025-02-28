@@ -55,17 +55,15 @@ public class AuthController {
     }
 
     @Operation(summary = "네이버 로그인", description = "네이버 로그인 API")
-    @ResponseStatus(HttpStatus.OK) // 성공적으로 처리된 경우 HTTP 200 OK 상태 반환
-    @PostMapping("/signup/naver") // POST 요청을 처리하며 "/signup/naver" 경로에 매핑
+    @ResponseStatus(HttpStatus.OK)
+    @PostMapping("/signup/naver")
     public BaseResponse<OAuthLoginResponse> naverLogin(
             @Parameter(description = "네이버 요청을 통해 받아온 엑세스 토큰")
-            @RequestParam("code") String code, // 클라이언트로부터 엑세스 토큰을 받는 파라미터
+            @RequestParam("code") String code,
             @Parameter(description = "네이버 요청 시 생성된 상태값")
-            @RequestParam("state") String state // 클라이언트로부터 상태값을 받는 파라미터
+            @RequestParam("state") String state
     ) {
-        // oAuthService의 naverLogin 메서드를 호출하여 엑세스 토큰과 상태값으로 로그인 처리
         OAuthLoginResponse response = oAuthService.naverLogin(code, state);
-        // 결과를 BaseResponse로 감싸서 반환
         return new BaseResponse<>(HttpStatus.OK.value(),"네이버 로그인 성공",response,true);
     }
 
@@ -138,5 +136,7 @@ public class AuthController {
             throw new CustomException(ErrorCode.BadRequest, "잘못된 요청입니다. 입력값을 확인해주세요.", HttpStatus.BAD_REQUEST);
         }
     }
+
+
 }
 
