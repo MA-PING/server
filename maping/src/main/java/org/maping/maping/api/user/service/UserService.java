@@ -1,7 +1,14 @@
 package org.maping.maping.api.user.service;
 
+import org.maping.maping.api.user.dto.response.UserInfoResponse;
+import org.maping.maping.model.user.UserInfoJpaEntity;
+
 public interface UserService {
 
     void deleteUser(Long userId);
+
+    UserInfoResponse getUserInfo(Long userId);
+
+    void updateNickname(Long userId, String newNickname);
 
 }

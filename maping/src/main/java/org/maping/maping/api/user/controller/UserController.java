@@ -34,12 +34,11 @@ import static org.hibernate.query.sqm.tree.SqmNode.log;
 @Slf4j
 @RestController
 @Tag(name = "User", description = "User API")
-@RequestMapping("/api/v1/User")
+@RequestMapping("/api/v1/user")
 @RequiredArgsConstructor
 public class UserController {
     private final UserService userService;
     private final JWTUtill jwtUtill;
-
 
     @Operation(summary = "회원탈퇴", description = "사용자 탈퇴하는 API")
     @DeleteMapping("/delete")
@@ -52,4 +51,20 @@ public class UserController {
 
         return ResponseEntity.ok(new BaseResponse(200, "회원 탈퇴 완료", null));
     }
+
+    @Operation(summary = "사용자 정보 조회", description = "사용자 정보를 조회하는 API")
+    @GetMapping("/info")
+    public ResponseEntity<BaseResponse> getUserInfo(HttpServletRequest request) {
+        Long userId = Long.parseLong(jwtUtill.getUserId(request));
+        return ResponseEntity.ok(new BaseResponse(200, "사용자 정보 조회 성공", userService.getUserInfo(userId), true));
+    }
+
+    @Operation(summary = "닉네임 재설정", description = "사용자 닉네임을 재설정하는 API")
+    @PostMapping("/info/update/nickname")
+    public ResponseEntity<BaseResponse> updateNickname(HttpServletRequest request, @Valid @RequestBody NicknameCheckRequest nicknameCheckRequest) {
+        Long userId = Long.parseLong(jwtUtill.getUserId(request));
+        userService.updateNickname(userId, nicknameCheckRequest.getNickname());
+        return ResponseEntity.ok(new BaseResponse(200, "닉네임 재설정 성공", null, true));
+    }
+
 }
