@@ -27,6 +27,7 @@ import org.maping.maping.exceptions.CustomException;
 import org.maping.maping.model.search.CharacterSearchJpaEntity;
 import org.maping.maping.repository.search.CharacterSearchRepository;
 import org.springframework.http.*;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.RestController;
@@ -41,7 +42,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.LinkedBlockingQueue;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
@@ -53,6 +56,7 @@ public class NEXONUtils {
 
     public final String Key;
     private final CharacterSearchRepository characterSearchRepository;
+    private final BlockingQueue<CompletableFuture<CharacterBasicDTO>> jsonQueue = new LinkedBlockingQueue<CompletableFuture<CharacterBasicDTO>>();
 
     public NEXONUtils(@Value("${spring.nexon.key}") String key, CharacterSearchRepository characterSearchRepository) {
         this.Key = key;
@@ -353,7 +357,13 @@ public class NEXONUtils {
 
         characterInfo.setOcid(ocid);
         characterInfo.setBasic(basic.join());
-        new Thread(() -> setCharacterInfo(basic.join())).start();
+        new Thread(() -> {
+            try {
+                jsonQueue.put(basic);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+        }).start();
         characterInfo.setStat(stat.join());
         characterInfo.setHyperStat(hyperStat.join());
         characterInfo.setAbility(ability.join());
@@ -372,6 +382,7 @@ public class NEXONUtils {
 
         return characterInfo;
     }
+
 
     public String getWorldImgUrl(String worldName) {
         if(Objects.equals(worldName, "노바")) {
@@ -409,7 +420,6 @@ public class NEXONUtils {
 
     public void setCharacterInfo(CharacterBasicDTO characterInfo) {
         String characterName = characterInfo.getCharacterName();
-        log.info("setCharacterInfo : {}", characterName);
         Optional<CharacterSearchJpaEntity> characterSearch = characterSearchRepository.findByCharacterName(characterName);
 
         if(characterSearch.isPresent()){
@@ -479,7 +489,18 @@ public class NEXONUtils {
         jaso[1] = String.valueOf((char) (0x1161 + jung)); // 중성
         jaso[2] = jong > 0 ? String.valueOf((char) (0x11A7 + jong)) : ""; // 종성
 
-        log.info("decomposeHangul: {}", jaso);
+        log.info("decomposeHangul: {}", (Object) jaso);
         return jaso;
+    }
+
+    @Scheduled(fixedDelay = 1000 * 60 * 15) //15분 1000 * 60 * 15 , 30초 1000 * 30
+    public void setCharacterSearch(){
+        while(!jsonQueue.isEmpty()){
+            CompletableFuture<CharacterBasicDTO> basic = jsonQueue.poll();
+            if(basic != null){
+                setCharacterInfo(basic.join());
+                log.info("캐릭터 검색 테이블 삽입: {}", basic.join().getCharacterName());
+            }
+        }
     }
 }
