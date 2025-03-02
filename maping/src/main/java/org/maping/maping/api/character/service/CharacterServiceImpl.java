@@ -53,7 +53,7 @@ public class CharacterServiceImpl implements CharacterService {
         if (ocid == null || ocid.trim().isEmpty()) {
             throw new IllegalArgumentException("유효하지 않은 ocid입니다.");
         }
-        return nexonUtils.getCharacterInfo(ocid);
+        return nexonUtils.getCharacterInfo(ocid, true);
     }
 
     @Override
@@ -63,15 +63,14 @@ public class CharacterServiceImpl implements CharacterService {
         }
         String jaso = nexonUtils.separateJaso(characterName);
         log.info("service jaso: {}", jaso);
-        List<AutocompleteResponse> autocomplete = CharacterSearchRepository.findByJaso(jaso).stream().map(characterConverter::convert).collect(Collectors.toList());
-        return autocomplete;
+        return CharacterSearchRepository.findByJaso(jaso).stream().map(characterConverter::convert).collect(Collectors.toList());
     }
 
     @Override
     public CharacterListResponse getApiCharacterList(OcidRequest apiKey) {
         log.info(apiKey.getApiKey());
         CharacterListDto characterListDto = nexonUtils.getCharacterList(apiKey.getApiKey());
-        CharacterInfoDTO characterInfoDTO = nexonUtils.getCharacterInfo(characterListDto.getAccountList().getFirst().getCharacterList().getFirst().getOcid());
+        CharacterInfoDTO characterInfoDTO = nexonUtils.getCharacterInfo(characterListDto.getAccountList().getFirst().getCharacterList().getFirst().getOcid(), false);
         CharacterListResponse characterListResponse = new CharacterListResponse();
         characterListResponse.setCharacterList(characterListDto);
         characterListResponse.setCharacterInfo(characterInfoDTO);
@@ -83,7 +82,7 @@ public class CharacterServiceImpl implements CharacterService {
         Optional<UserApiJpaEntity> userApiJpaEntity = UserApiRepository.findById(userId);
         UserApiJpaEntity user = userApiJpaEntity.orElseThrow(() -> new IllegalArgumentException("유효하지 않은 유저입니다."));
         CharacterListDto characterListDto = nexonUtils.getCharacterList(user.getUserApiInfo());
-        CharacterInfoDTO characterInfoDTO = nexonUtils.getCharacterInfo(characterListDto.getAccountList().getFirst().getCharacterList().getFirst().getOcid());
+        CharacterInfoDTO characterInfoDTO = nexonUtils.getCharacterInfo(characterListDto.getAccountList().getFirst().getCharacterList().getFirst().getOcid(), false);
         CharacterListResponse characterListResponse = new CharacterListResponse();
         characterListResponse.setCharacterList(characterListDto);
         characterListResponse.setCharacterInfo(characterInfoDTO);

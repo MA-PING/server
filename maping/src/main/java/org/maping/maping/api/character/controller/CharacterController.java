@@ -58,4 +58,5 @@ public class CharacterController {
         log.info("userId: {}", userId);
         return new BaseResponse<>(HttpStatus.OK.value(), "캐릭터 정보를 가져오는데 성공하였습니다.", characterServiceImpl.getCharacterList(userId));
     }
+
 }

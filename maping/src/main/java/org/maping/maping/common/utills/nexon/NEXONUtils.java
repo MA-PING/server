@@ -333,7 +333,7 @@ public class NEXONUtils {
     }
 
     @Operation(summary = "캐릭터 정보 첫페이지 가져오기", description = "캐릭터 이름을 통해 캐릭터의 기본 정보를 가져오는 API")
-    public CharacterInfoDTO getCharacterInfo(String ocid) {
+    public CharacterInfoDTO getCharacterInfo(String ocid, boolean search) {
         CharacterInfoDTO characterInfo = new CharacterInfoDTO();
         log.info("getCharacterInfo: {}", ocid);
 
@@ -355,13 +355,16 @@ public class NEXONUtils {
 
         characterInfo.setOcid(ocid);
         characterInfo.setBasic(basic.join());
-        new Thread(() -> {
-            try {
-                jsonQueue.put(basic);
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
-            }
-        }).start();
+        if(search){
+            new Thread(() -> {
+                try {
+                    jsonQueue.put(basic);
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
+            }).start();
+        }
+
         characterInfo.setStat(stat.join());
         characterInfo.setHyperStat(hyperStat.join());
         characterInfo.setAbility(ability.join());
