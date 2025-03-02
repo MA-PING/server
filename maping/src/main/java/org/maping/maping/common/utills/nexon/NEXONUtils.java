@@ -38,13 +38,11 @@ import org.springframework.beans.factory.annotation.Value;
 
 import java.net.URLEncoder;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.stream.Collectors;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
@@ -58,7 +56,7 @@ public class NEXONUtils {
     private final CharacterSearchRepository characterSearchRepository;
     private final BlockingQueue<CompletableFuture<CharacterBasicDTO>> jsonQueue = new LinkedBlockingQueue<CompletableFuture<CharacterBasicDTO>>();
 
-    public NEXONUtils(@Value("${spring.nexon.key}") String key, CharacterSearchRepository characterSearchRepository) {
+    public NEXONUtils(@Value("${spring.nexon.key2}") String key, CharacterSearchRepository characterSearchRepository) {
         this.Key = key;
         this.characterSearchRepository = characterSearchRepository;
     }
@@ -431,7 +429,7 @@ public class NEXONUtils {
                     .characterClass(characterInfo.getCharacterClass())
                     .image(characterInfo.getCharacterImage())
                     .worldImg(getWorldImgUrl(characterInfo.getWorldName()))
-                    .jaso(separateJaso(characterInfo.getCharacterName()).toString())
+                    .jaso(separateJaso(characterInfo.getCharacterName()))
                     .count(characterSearch.get().getCount() + 1)
                     .createdAt(characterSearch.get().getCreatedAt())
                     .updatedAt(LocalDateTime.now())
@@ -445,7 +443,7 @@ public class NEXONUtils {
                     .characterClass(characterInfo.getCharacterClass())
                     .image(characterInfo.getCharacterImage())
                     .worldImg(getWorldImgUrl(characterInfo.getWorldName()))
-                    .jaso(separateJaso(characterInfo.getCharacterName()).toString())
+                    .jaso(separateJaso(characterInfo.getCharacterName()))
                     .count(1)
                     .createdAt(LocalDateTime.now())
                     .updatedAt(LocalDateTime.now())
@@ -454,7 +452,7 @@ public class NEXONUtils {
         }
     }
     // 자소 분리 함수
-    public static List<String> separateJaso(String input) {
+    public String separateJaso(String input) {
         log.info("separateJaso: {}", input);
         List<String> result = new ArrayList<>();
 
@@ -462,14 +460,12 @@ public class NEXONUtils {
             // 한글 자모 분해
             if (isHangul(ch)) {
                 String[] jaso = decomposeHangul(ch);
-                for (String j : jaso) {
-                    result.add(j);
-                }
+                result.addAll(Arrays.asList(jaso));
             } else {
                 result.add(String.valueOf(ch)); // 한글이 아닌 경우 그대로 추가
             }
         }
-        return result;
+        return String.join(",", result);
     }
 
     // 한글 여부 확인
@@ -483,17 +479,23 @@ public class NEXONUtils {
         int cho = base / (21 * 28); // 초성
         int jung = (base % (21 * 28)) / 28; // 중성
         int jong = base % 28; // 종성
-
-        String[] jaso = new String[3];
-        jaso[0] = String.valueOf((char) (0x1100 + cho)); // 초성
-        jaso[1] = String.valueOf((char) (0x1161 + jung)); // 중성
-        jaso[2] = jong > 0 ? String.valueOf((char) (0x11A7 + jong)) : ""; // 종성
+        String[] jaso;
+        if(jong > 0){
+            jaso = new String[3];
+            jaso[0] = String.valueOf((char) (0x1100 + cho)); // 초성
+            jaso[1] = String.valueOf((char) (0x1161 + jung)); // 중성
+            jaso[2] = String.valueOf((char) (0x11A7 + jong)); // 종성
+        }else{
+            jaso = new String[2];
+            jaso[0] = String.valueOf((char) (0x1100 + cho)); // 초성
+            jaso[1] = String.valueOf((char) (0x1161 + jung)); // 중성
+        }
 
         log.info("decomposeHangul: {}", (Object) jaso);
         return jaso;
     }
 
-    @Scheduled(fixedDelay = 1000 * 60 * 15) //15분 1000 * 60 * 15 , 30초 1000 * 30
+    @Scheduled(fixedDelay = 1000 * 30) //15분 1000 * 60 * 15 , 30초 1000 * 30
     public void setCharacterSearch(){
         while(!jsonQueue.isEmpty()){
             CompletableFuture<CharacterBasicDTO> basic = jsonQueue.poll();

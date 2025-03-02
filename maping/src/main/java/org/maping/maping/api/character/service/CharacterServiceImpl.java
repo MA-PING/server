@@ -2,14 +2,17 @@ package org.maping.maping.api.character.service;
 
 import lombok.extern.slf4j.Slf4j;
 import org.maping.maping.api.character.dto.request.OcidRequest;
+import org.maping.maping.api.character.dto.response.AutocompleteResponse;
 import org.maping.maping.api.character.dto.response.CharacterListResponse;
 import org.maping.maping.common.utills.nexon.NEXONUtils;
 import org.maping.maping.common.utills.nexon.dto.character.CharacterDTO;
 import org.maping.maping.common.utills.nexon.dto.character.CharacterInfoDTO;
 import org.maping.maping.common.utills.nexon.dto.character.CharacterListDto;
 import org.maping.maping.model.ocid.OcidJpaEntity;
+import org.maping.maping.model.search.CharacterSearchJpaEntity;
 import org.maping.maping.model.user.UserApiJpaEntity;
 import org.maping.maping.repository.ocid.OcidRepository;
+import org.maping.maping.repository.search.CharacterSearchRepository;
 import org.maping.maping.repository.user.UserApiRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Async;
@@ -17,7 +20,10 @@ import org.springframework.stereotype.Service;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -25,10 +31,15 @@ public class CharacterServiceImpl implements CharacterService {
     @Autowired
     private final NEXONUtils nexonUtils;
     private final UserApiRepository UserApiRepository;
+    private final CharacterSearchRepository CharacterSearchRepository;
+    @Autowired
+    private CharacterConverter characterConverter;
 
-    public CharacterServiceImpl(NEXONUtils nexonUtils, org.maping.maping.repository.user.UserApiRepository userApiRepository) {
+
+    public CharacterServiceImpl(NEXONUtils nexonUtils, org.maping.maping.repository.user.UserApiRepository userApiRepository, CharacterSearchRepository characterSearchRepository) {
         this.nexonUtils = nexonUtils;
         UserApiRepository = userApiRepository;
+        CharacterSearchRepository = characterSearchRepository;
     }
 
     public CharacterInfoDTO getCharacterInfo(String characterName) {
@@ -43,6 +54,17 @@ public class CharacterServiceImpl implements CharacterService {
             throw new IllegalArgumentException("유효하지 않은 ocid입니다.");
         }
         return nexonUtils.getCharacterInfo(ocid);
+    }
+
+    @Override
+    public List<AutocompleteResponse> getAutocomplete(String characterName) {
+        if(characterName == null || characterName.trim().isEmpty()) {
+            throw new IllegalArgumentException("캐릭터 이름을 입력해주세요.");
+        }
+        String jaso = nexonUtils.separateJaso(characterName);
+        log.info("service jaso: {}", jaso);
+        List<AutocompleteResponse> autocomplete = CharacterSearchRepository.findByJaso(jaso).stream().map(characterConverter::convert).collect(Collectors.toList());
+        return autocomplete;
     }
 
     @Override
