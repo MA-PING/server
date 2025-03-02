@@ -1,5 +1,6 @@
 package org.maping.maping.api.user.service;
 
+import org.maping.maping.api.auth.dto.request.PasswordRequest;
 import org.maping.maping.api.user.dto.response.UserInfoResponse;
 import org.maping.maping.model.user.UserInfoJpaEntity;
 
@@ -10,5 +11,7 @@ public interface UserService {
     UserInfoResponse getUserInfo(Long userId);
 
     void updateNickname(Long userId, String newNickname);
+
+    void updatePassword(Long userId, PasswordRequest passwordRequest);
 
 }

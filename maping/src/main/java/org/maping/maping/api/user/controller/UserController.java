@@ -67,4 +67,11 @@ public class UserController {
         return ResponseEntity.ok(new BaseResponse(200, "닉네임 재설정 성공", null, true));
     }
 
+    @Operation(summary = "비밀번호 재설정", description = "사용자 비밀번호를 재설정하는 API")
+    @PostMapping("/info/update/password")
+    public ResponseEntity<BaseResponse> updatePassword(HttpServletRequest request, @Valid @RequestBody PasswordRequest passwordRequest) {
+        Long userId = Long.parseLong(jwtUtill.getUserId(request));
+        userService.updatePassword(userId, passwordRequest);
+        return ResponseEntity.ok(new BaseResponse(200, "비밀번호 재설정 성공", null, true));
+    }
 }

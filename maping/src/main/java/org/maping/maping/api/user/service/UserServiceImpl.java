@@ -1,6 +1,7 @@
 package org.maping.maping.api.user.service;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.maping.maping.api.auth.dto.request.PasswordRequest;
 import org.maping.maping.api.user.dto.response.UserInfoResponse;
 import org.maping.maping.common.utills.ULID.ULIDUtill;
 import org.maping.maping.common.utills.users.oauth.google.dto.GoogleUserInfoResponse;
@@ -8,6 +9,7 @@ import org.maping.maping.common.utills.users.oauth.naver.NaverUtil;
 import org.maping.maping.external.oauth.naver.dto.response.NaverUserInfoResponse;
 import org.maping.maping.repository.user.UserRepository;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.maping.maping.api.auth.dto.response.OAuthLoginResponse;
 import org.maping.maping.common.enums.expection.ErrorCode;
@@ -27,7 +29,11 @@ import java.util.regex.Pattern;
 public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
+    private final LocalRepository localRepository;
+    private final BCryptPasswordEncoder passwordEncoder;
 
+    private static final String PASSWORD_REGEX = "^(?=.*[A-Za-z])(?=.*\\d)[A-Za-z\\d!@#$%^&*()_+\\-=]{6,}$";
+    private static final Pattern PASSWORD_PATTERN = Pattern.compile(PASSWORD_REGEX);
     private static final String NICKNAME_REGEX = "^[가-힣a-zA-Z0-9]{2,10}$";
     private static final Pattern NICKNAME_PATTERN = Pattern.compile(NICKNAME_REGEX);
 
@@ -73,4 +79,25 @@ public class UserServiceImpl implements UserService {
         userRepository.save(user);
     }
 
-}
+
+
+        @Transactional
+        @Override
+        public void updatePassword(Long userId, PasswordRequest passwordRequest) {
+            // 사용자 조회
+            LocalJpaEntity local = localRepository.findById(userId)
+                    .orElseThrow(() -> new CustomException(ErrorCode.NotFound, "사용자를 찾을 수 없습니다."));
+
+            // 비밀번호 유효성 검사
+            if (passwordRequest.getPassword() == null || !PASSWORD_PATTERN.matcher(passwordRequest.getPassword()).matches()) {
+                throw new CustomException(ErrorCode.BadRequest, "비밀번호는 영문, 숫자를 포함한 6자 이상이어야 합니다.");
+            }
+
+            // 새로운 비밀번호로 업데이트
+            local.setPassword(passwordEncoder.encode(passwordRequest.getPassword()));
+
+            // 저장
+            localRepository.save(local);
+        }
+
+    }
