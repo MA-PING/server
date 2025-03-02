@@ -1,23 +1,14 @@
 package org.maping.maping.api.user.controller;
 import groovy.util.logging.Slf4j;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.maping.maping.api.auth.dto.request.LoginRequest;
 import org.maping.maping.api.auth.dto.request.NicknameCheckRequest;
 import org.maping.maping.api.auth.dto.request.PasswordRequest;
-import org.maping.maping.api.auth.dto.request.UserRegistrationRequest;
-import org.maping.maping.api.auth.dto.response.OAuthLoginResponse;
-import org.maping.maping.api.auth.service.AuthService;
-import org.maping.maping.api.auth.service.MailService;
-import org.maping.maping.api.auth.service.OAuthService;
+import org.maping.maping.api.user.service.PasswordMailService;
 import org.maping.maping.api.user.service.UserService;
-import org.maping.maping.common.enums.expection.ErrorCode;
-import org.maping.maping.common.utills.jwt.dto.JwtDto;
-import org.maping.maping.exceptions.CustomException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -25,8 +16,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import jakarta.mail.MessagingException;
 import org.maping.maping.common.response.BaseResponse;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.maping.maping.common.utills.jwt.JWTUtill;
 
 import static org.hibernate.query.sqm.tree.SqmNode.log;
@@ -37,6 +26,7 @@ import static org.hibernate.query.sqm.tree.SqmNode.log;
 @RequestMapping("/api/v1/user")
 @RequiredArgsConstructor
 public class UserController {
+    private final PasswordMailService passwordMailService;
     private final UserService userService;
     private final JWTUtill jwtUtill;
 
@@ -73,5 +63,18 @@ public class UserController {
         Long userId = Long.parseLong(jwtUtill.getUserId(request));
         userService.updatePassword(userId, passwordRequest);
         return ResponseEntity.ok(new BaseResponse(200, "비밀번호 재설정 성공", null, true));
+    }
+
+    @Operation(summary = "비밀번호 변경 이메일 발송", description = "비밀번호 변경 이메일 발송 API")
+    @ResponseStatus(HttpStatus.OK)
+    @PostMapping("/send-password-reset-email")
+    public BaseResponse<String> sendPasswordResetEmail(@RequestParam String email) {
+        try {
+            passwordMailService.sendPasswordResetEmail(email);
+            return new BaseResponse<>(HttpStatus.OK.value(), "비밀번호 변경 이메일 발송 성공", "비밀번호 변경 이메일 발송 성공", true);
+        } catch (MessagingException e) {
+            log.error("비밀번호 변경 이메일 발송 실패: {}", e.getMessage(), e);
+            return new BaseResponse<>(HttpStatus.INTERNAL_SERVER_ERROR.value(), "비밀번호 변경 이메일 발송 실패", "비밀번호 변경 이메일 발송 실패", false);
+        }
     }
 }
