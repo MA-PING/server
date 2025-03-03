@@ -59,4 +59,10 @@ public class CharacterController {
         return new BaseResponse<>(HttpStatus.OK.value(), "캐릭터 정보를 가져오는데 성공하였습니다.", characterServiceImpl.getCharacterList(userId));
     }
 
+    @Operation(summary = "캐락터 정보 새로고침", description = "캐락터 정보 새로고침하는 API")
+    @ResponseStatus(HttpStatus.OK)
+    @GetMapping("character/refresh")
+    public BaseResponse<CharacterInfoDTO> getRefreshCharacterInfo(@RequestParam String characterName) {
+        return new BaseResponse<>(HttpStatus.OK.value(), "캐릭터 정보를 가져오는데 성공하였습니다.", characterServiceImpl.getRefreshCharacterInfo(characterName));
+    }
 }

@@ -88,4 +88,19 @@ public class CharacterServiceImpl implements CharacterService {
         characterListResponse.setCharacterInfo(characterInfoDTO);
         return characterListResponse;
     }
+
+    @Override
+    public CharacterInfoDTO getRefreshCharacterInfo(String characterName) {
+        if(characterName == null || characterName.trim().isEmpty()) {
+            throw new IllegalArgumentException("캐릭터 이름을 입력해주세요.");
+        }
+        CharacterDTO characterDto = nexonUtils.getOcid(characterName);
+        String ocid = characterDto.getOcid();
+        log.info("service ocid: {}", ocid);
+
+        if (ocid == null || ocid.trim().isEmpty()) {
+            throw new IllegalArgumentException("유효하지 않은 ocid입니다.");
+        }
+        return nexonUtils.getCharacterInfo(ocid, false);
+    }
 }

@@ -12,4 +12,6 @@ public interface CharacterService {
     public List<AutocompleteResponse> getAutocomplete(String characterName);
     public CharacterListResponse getApiCharacterList(OcidRequest apiKey);
     public CharacterListResponse getCharacterList(Long userId);
+    public CharacterInfoDTO getRefreshCharacterInfo(String characterName);
+
 }
