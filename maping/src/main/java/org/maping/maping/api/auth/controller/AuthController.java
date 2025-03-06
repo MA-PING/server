@@ -64,7 +64,7 @@ public class AuthController {
             @RequestParam("state") String state
     ) {
         OAuthLoginResponse response = oAuthService.naverLogin(code, state);
-        return new BaseResponse<>(HttpStatus.OK.value(),"네이버 로그인 성공",response,true);
+        return new BaseResponse<>(HttpStatus.OK.value(), "네이버 로그인 성공", response, true);
     }
 
     @Operation(summary = "구글 로그인", description = "구글 로그인 API")
