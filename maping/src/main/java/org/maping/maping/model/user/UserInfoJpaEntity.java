@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.maping.maping.model.ai.AiHistoryJpaEntity;
 
 import java.time.LocalDateTime;
 import java.util.LinkedHashSet;
@@ -38,5 +39,8 @@ public class UserInfoJpaEntity {
 
     @OneToOne(mappedBy = "userInfoTb")
     private UserApiJpaEntity userApiTb;
+
+    @OneToMany(mappedBy = "user")
+    private Set<AiHistoryJpaEntity> aiHistoryTbs = new LinkedHashSet<>();
 
 }

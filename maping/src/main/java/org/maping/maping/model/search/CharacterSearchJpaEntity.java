@@ -44,9 +44,8 @@ public class CharacterSearchJpaEntity {
     @Column(name = "character_class", nullable = false, length = 100)
     private String characterClass;
 
-    @Size(max = 255)
-    @NotNull
-    @Column(name = "image", nullable = false)
+
+    @Column(name = "image", columnDefinition = "TEXT", nullable = false)
     private String image;
 
     @Size(max = 255)

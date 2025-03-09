@@ -37,12 +37,10 @@ import org.springframework.web.util.UriComponentsBuilder;
 import org.springframework.beans.factory.annotation.Value;
 
 import java.net.URLEncoder;
+import java.sql.Time;
 import java.time.LocalDateTime;
 import java.util.*;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.stream.Collectors;
+import java.util.concurrent.*;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
@@ -54,9 +52,9 @@ public class NEXONUtils {
 
     public final String Key;
     private final CharacterSearchRepository characterSearchRepository;
-    private final BlockingQueue<CompletableFuture<CharacterBasicDTO>> jsonQueue = new LinkedBlockingQueue<CompletableFuture<CharacterBasicDTO>>();
+    private final BlockingQueue<CompletableFuture<CharacterBasicDTO>> jsonQueue = new LinkedBlockingQueue<>();
 
-    public NEXONUtils(@Value("${spring.nexon.key2}") String key, CharacterSearchRepository characterSearchRepository) {
+    public NEXONUtils(@Value("${spring.nexon.key}") String key, CharacterSearchRepository characterSearchRepository) {
         this.Key = key;
         this.characterSearchRepository = characterSearchRepository;
     }
@@ -336,49 +334,152 @@ public class NEXONUtils {
     public CharacterInfoDTO getCharacterInfo(String ocid, boolean search) {
         CharacterInfoDTO characterInfo = new CharacterInfoDTO();
         log.info("getCharacterInfo: {}", ocid);
-
-        CompletableFuture<CharacterBasicDTO> basic = CompletableFuture.supplyAsync(() -> getCharacterBasic(ocid));
-        CompletableFuture<CharacterStatDto> stat = CompletableFuture.supplyAsync(() -> getCharacterStat(ocid));
-        CompletableFuture<CharacterHyperStatDTO> hyperStat = CompletableFuture.supplyAsync(() -> getCharacterHyperStat(ocid));
-        CompletableFuture<CharacterAbilityDTO> ability = CompletableFuture.supplyAsync(() -> getCharacterAbility(ocid));
-        CompletableFuture<CharacterItemEquipmentDTO> itemEquipment = CompletableFuture.supplyAsync(() -> getCharacterItemEquip(ocid));
-        CompletableFuture<CharacterSymbolEquipmentDTO> symbolEquipment = CompletableFuture.supplyAsync(() -> getCharacterSymbolEquipment(ocid));
-        CompletableFuture<CharacterSkillDTO> skill5 = CompletableFuture.supplyAsync(() -> getCharacterSkill5(ocid, 5));
-        CompletableFuture<CharacterSkillDTO> skill6 = CompletableFuture.supplyAsync(() -> getCharacterSkill5(ocid, 6));
-        CompletableFuture<CharacterLinkSkillDTO> linkSkill = CompletableFuture.supplyAsync(() -> getCharacterLinkSkill(ocid));
-        CompletableFuture<CharacterVMatrixDTO> vMatrix = CompletableFuture.supplyAsync(() -> getCharacterVmatrix(ocid));
-        CompletableFuture<CharacterHexaMatrixDTO> hexaMatrix = CompletableFuture.supplyAsync(() -> getCharacterHexamatrix(ocid));
-        CompletableFuture<CharacterHexaMatrixStatDTO> hexaMatrixStat = CompletableFuture.supplyAsync(() -> getCharacterHexamatrixStat(ocid));
-        CompletableFuture<UnionDTO> union = CompletableFuture.supplyAsync(() -> getUnion(ocid));
-        CompletableFuture<UnionRaiderDTO> unionRaider = CompletableFuture.supplyAsync(() -> getUnionRaider(ocid));
-        CompletableFuture<UnionArtifactDTO> unionArtifact = CompletableFuture.supplyAsync(() -> getUnionArtifact(ocid));
-
         characterInfo.setOcid(ocid);
-        characterInfo.setBasic(basic.join());
-        if(search){
-            new Thread(() -> {
-                try {
-                    jsonQueue.put(basic);
-                } catch (InterruptedException e) {
-                    throw new RuntimeException(e);
+        List<Callable<Void>> tasks = new ArrayList<>();
+        tasks.add(() -> {
+            characterInfo.setBasic(getCharacterBasic(ocid));
+            return null;
+        });
+        tasks.add(() -> {
+            characterInfo.setStat(getCharacterStat(ocid));
+            return null;
+        });
+        tasks.add(() -> {
+            characterInfo.setHyperStat(getCharacterHyperStat(ocid));
+            return null;
+        });
+        tasks.add(() -> {
+            characterInfo.setAbility(getCharacterAbility(ocid));
+            return null;
+        });
+        tasks.add(() -> {
+            characterInfo.setItemEquipment(getCharacterItemEquip(ocid));
+            return null;
+        });
+        tasks.add(() -> {
+            characterInfo.setSymbolEquipment(getCharacterSymbolEquipment(ocid));
+            return null;
+        });
+        tasks.add(() -> {
+            characterInfo.setSkill5(getCharacterSkill5(ocid, 5));
+            return null;
+        });
+        tasks.add(() -> {
+            characterInfo.setSkill6(getCharacterSkill5(ocid, 6));
+            return null;
+        });
+        tasks.add(() -> {
+            characterInfo.setLinkSkill(getCharacterLinkSkill(ocid));
+            return null;
+        });
+        tasks.add(() -> {
+            characterInfo.setVMatrix(getCharacterVmatrix(ocid));
+            return null;
+        });
+        tasks.add(() -> {
+            characterInfo.setHexaMatrix(getCharacterHexamatrix(ocid));
+            return null;
+        });
+        tasks.add(() -> {
+            characterInfo.setHexaMatrixStat(getCharacterHexamatrixStat(ocid));
+            return null;
+        });
+        tasks.add(() -> {
+            characterInfo.setUnion(getUnion(ocid));
+            return null;
+        });
+        tasks.add(() -> {
+            characterInfo.setUnionRaider(getUnionRaider(ocid));
+            return null;
+        });
+        tasks.add(() -> {
+            characterInfo.setUnionArtifact(getUnionArtifact(ocid));
+            return null;
+        });
+
+        // ScheduledExecutorService를 사용하여 호출 실행
+        ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
+
+        for (int i = 0; i < tasks.size(); i += 4) {
+            int start = i;
+            int end = Math.min(i + 4, tasks.size());
+
+            scheduler.schedule(() -> {
+                for (int j = start; j < end; j++) {
+                    try {
+                        tasks.get(j).call();
+                    } catch (Exception e) {
+                        log.error("Error executing task: {}", e.getMessage());
+                    }
                 }
-            }).start();
+            }, (i / 4), TimeUnit.SECONDS);
         }
 
-        characterInfo.setStat(stat.join());
-        characterInfo.setHyperStat(hyperStat.join());
-        characterInfo.setAbility(ability.join());
-        characterInfo.setItemEquipment(itemEquipment.join());
-        characterInfo.setSymbolEquipment(symbolEquipment.join());
-        characterInfo.setSkill5(skill5.join());
-        characterInfo.setSkill6(skill6.join());
-        characterInfo.setLinkSkill(linkSkill.join());
-        characterInfo.setVMatrix(vMatrix.join());
-        characterInfo.setHexaMatrix(hexaMatrix.join());
-        characterInfo.setHexaMatrixStat(hexaMatrixStat.join());
-        characterInfo.setUnion(union.join());
-        characterInfo.setUnionRaider(unionRaider.join());
-        characterInfo.setUnionArtifact(unionArtifact.join());
+        scheduler.shutdown();
+        try {
+            scheduler.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+
+//        CompletableFuture<CharacterBasicDTO> basic = CompletableFuture.supplyAsync(() -> getCharacterBasic(ocid));
+//        CompletableFuture<CharacterStatDto> stat = CompletableFuture.supplyAsync(() -> getCharacterStat(ocid));
+//        CompletableFuture<CharacterHyperStatDTO> hyperStat = CompletableFuture.supplyAsync(() -> getCharacterHyperStat(ocid));
+//        CompletableFuture<CharacterAbilityDTO> ability = CompletableFuture.supplyAsync(() -> getCharacterAbility(ocid));
+//        CompletableFuture<CharacterItemEquipmentDTO> itemEquipment = CompletableFuture.supplyAsync(() -> getCharacterItemEquip(ocid));
+//        CompletableFuture<CharacterSymbolEquipmentDTO> symbolEquipment = CompletableFuture.supplyAsync(() -> getCharacterSymbolEquipment(ocid));
+//        CompletableFuture<CharacterSkillDTO> skill5 = CompletableFuture.supplyAsync(() -> getCharacterSkill5(ocid, 5));
+//        CompletableFuture<CharacterSkillDTO> skill6 = CompletableFuture.supplyAsync(() -> getCharacterSkill5(ocid, 6));
+//        CompletableFuture<CharacterLinkSkillDTO> linkSkill = CompletableFuture.supplyAsync(() -> getCharacterLinkSkill(ocid));
+//        CompletableFuture<CharacterVMatrixDTO> vMatrix = CompletableFuture.supplyAsync(() -> getCharacterVmatrix(ocid));
+//        CompletableFuture<CharacterHexaMatrixDTO> hexaMatrix = CompletableFuture.supplyAsync(() -> getCharacterHexamatrix(ocid));
+//        CompletableFuture<CharacterHexaMatrixStatDTO> hexaMatrixStat = CompletableFuture.supplyAsync(() -> getCharacterHexamatrixStat(ocid));
+//        CompletableFuture<UnionDTO> union = CompletableFuture.supplyAsync(() -> getUnion(ocid));
+//        CompletableFuture<UnionRaiderDTO> unionRaider = CompletableFuture.supplyAsync(() -> getUnionRaider(ocid));
+//        CompletableFuture<UnionArtifactDTO> unionArtifact = CompletableFuture.supplyAsync(() -> getUnionArtifact(ocid));
+
+//        characterInfo.setOcid(ocid);
+//        characterInfo.setBasic(getCharacterBasic(ocid));
+//        characterInfo.setStat(getCharacterStat(ocid));
+//        characterInfo.setHyperStat(getCharacterHyperStat(ocid));
+//        characterInfo.setAbility(getCharacterAbility(ocid));
+//        characterInfo.setItemEquipment(getCharacterItemEquip(ocid));
+//        characterInfo.setSymbolEquipment(getCharacterSymbolEquipment(ocid));
+//        characterInfo.setSkill5(getCharacterSkill5(ocid, 5));
+//        characterInfo.setSkill6(getCharacterSkill5(ocid, 6));
+//        characterInfo.setLinkSkill(getCharacterLinkSkill(ocid));
+//        characterInfo.setVMatrix(getCharacterVmatrix(ocid));
+//        characterInfo.setHexaMatrix(getCharacterHexamatrix(ocid));
+//        characterInfo.setHexaMatrixStat(getCharacterHexamatrixStat(ocid));
+//        characterInfo.setUnion(getUnion(ocid));
+//        characterInfo.setUnionRaider(getUnionRaider(ocid));
+//        characterInfo.setUnionArtifact(getUnionArtifact(ocid));
+
+//        characterInfo.setBasic(basic.join());
+//        if(search){
+//            new Thread(() -> {
+//                try {
+//                    jsonQueue.put(basic);
+//                } catch (InterruptedException e) {
+//                    throw new RuntimeException(e);
+//                }
+//            }).start();
+//        }
+//
+//        characterInfo.setStat(stat.join());
+//        characterInfo.setHyperStat(hyperStat.join());
+//        characterInfo.setAbility(ability.join());
+//        characterInfo.setItemEquipment(itemEquipment.join());
+//        characterInfo.setSymbolEquipment(symbolEquipment.join());
+//        characterInfo.setSkill5(skill5.join());
+//        characterInfo.setSkill6(skill6.join());
+//        characterInfo.setLinkSkill(linkSkill.join());
+//        characterInfo.setVMatrix(vMatrix.join());
+//        characterInfo.setHexaMatrix(hexaMatrix.join());
+//        characterInfo.setHexaMatrixStat(hexaMatrixStat.join());
+//        characterInfo.setUnion(union.join());
+//        characterInfo.setUnionRaider(unionRaider.join());
+//        characterInfo.setUnionArtifact(unionArtifact.join());
 
 
         return characterInfo;
@@ -386,45 +487,32 @@ public class NEXONUtils {
 
 
     public String getWorldImgUrl(String worldName) {
-        if(Objects.equals(worldName, "노바")) {
-            return "https://lh3.google.com/u/0/d/1Wx3lx6-Qe8Hm8S7lNwlNGtiSemJ5X9Pv=w1920-h968-iv1";
-        }else if(Objects.equals(worldName, "레드")) {
-            return "https://lh3.google.com/u/0/d/1a9YYUARXdVzUUu-aUarHgyJdqNBx5Mbf=w1920-h968-iv1";
-        }else if(Objects.equals(worldName, "루나")) {
-            return "https://lh3.google.com/u/0/d/1mZPYCSxll88VLUr4cGFVEGhb_kJ5k6CJ=w2000-h1668-iv1";
-        }else if(Objects.equals(worldName, "베라")) {
-            return "https://lh3.google.com/u/0/d/1wJiCzHW8Rk1nr7JsHZUcsBtoiMRT8Isz=w2000-h1668-iv1";
-        }else if(Objects.equals(worldName, "스카니아")) {
-            return "https://lh3.google.com/u/0/d/1fVg6ThMqPJsEg9KuypXHUtUFnlboUwFN=w2000-h1668-iv1";
-        }else if(Objects.equals(worldName, "아케인")) {
-            return "https://lh3.google.com/u/0/d/1IcE7Xx1RUTJTF6HGsX40pptB9kXEmZC3=w2000-h1668-iv1";
-        }else if(Objects.equals(worldName, "엘리시움")) {
-            return "https://lh3.google.com/u/0/d/1cLtG3h4EKuMzhtzG4PkJhQBTVatZQssE=w2000-h1668-iv1";
-        }else if(Objects.equals(worldName, "오로라")) {
-            return "https://lh3.google.com/u/0/d/1tUc4BMDtIUAUIKH47nkZwbQcFqta_B-T=w2000-h1668-iv1";
-        }else if(Objects.equals(worldName, "유니온")) {
-            return "https://lh3.google.com/u/0/d/1RiRArYAAJ3FDOfInklir6vficLOGAT8q=w1920-h968-iv1";
-        }else if(Objects.equals(worldName, "이노시스")) {
-            return "https://lh3.google.com/u/0/d/1W7mw46omb1PjNFA61W6InL3n3fT5OnWn=w2000-h1668-iv1";
-        }else if(Objects.equals(worldName, "제니스")) {
-            return "https://lh3.google.com/u/0/d/1Y7kwZO5DeE3PouKnkTrQYGKiNavKpwUz=w2000-h1668-iv1";
-        }else if(Objects.equals(worldName, "크로아")) {
-            return "https://lh3.google.com/u/0/d/1HTAKqVQ8QxFrWZO6mkEW9_pdy314zSSN=w2000-h1668-iv1";
-        } else if(Objects.equals(worldName, "에오스")) {
-            return "https://lh3.google.com/u/0/d/1WKmBiemmm5LHCdt6VJ4pDj5HlviWWxkI=w1920-h968-iv1";
-        } else if(Objects.equals(worldName, "핼리오스")) {
-            return "https://lh3.google.com/u/0/d/11kV1yU4St0EQIx_u26P3_lQ-Xf4v0_-j=w2000-h1668-iv1";
-        }else{
-            return new CustomException(ErrorCode.NotFound, worldName).getMessage();
-        }
+        return switch (worldName) {
+            case "노바" -> "https://lh3.google.com/u/0/d/1Wx3lx6-Qe8Hm8S7lNwlNGtiSemJ5X9Pv=w1920-h968-iv1";
+            case "레드" -> "https://lh3.google.com/u/0/d/1a9YYUARXdVzUUu-aUarHgyJdqNBx5Mbf=w1920-h968-iv1";
+            case "루나" -> "https://lh3.google.com/u/0/d/1mZPYCSxll88VLUr4cGFVEGhb_kJ5k6CJ=w2000-h1668-iv1";
+            case "베라" -> "https://lh3.google.com/u/0/d/1wJiCzHW8Rk1nr7JsHZUcsBtoiMRT8Isz=w2000-h1668-iv1";
+            case "스카니아" -> "https://lh3.google.com/u/0/d/1fVg6ThMqPJsEg9KuypXHUtUFnlboUwFN=w2000-h1668-iv1";
+            case "아케인" -> "https://lh3.google.com/u/0/d/1IcE7Xx1RUTJTF6HGsX40pptB9kXEmZC3=w2000-h1668-iv1";
+            case "엘리시움" -> "https://lh3.google.com/u/0/d/1cLtG3h4EKuMzhtzG4PkJhQBTVatZQssE=w2000-h1668-iv1";
+            case "오로라" -> "https://lh3.google.com/u/0/d/1tUc4BMDtIUAUIKH47nkZwbQcFqta_B-T=w2000-h1668-iv1";
+            case "유니온" -> "https://lh3.google.com/u/0/d/1RiRArYAAJ3FDOfInklir6vficLOGAT8q=w1920-h968-iv1";
+            case "이노시스" -> "https://lh3.google.com/u/0/d/1W7mw46omb1PjNFA61W6InL3n3fT5OnWn=w2000-h1668-iv1";
+            case "제니스" -> "https://lh3.google.com/u/0/d/1Y7kwZO5DeE3PouKnkTrQYGKiNavKpwUz=w2000-h1668-iv1";
+            case "크로아" -> "https://lh3.google.com/u/0/d/1HTAKqVQ8QxFrWZO6mkEW9_pdy314zSSN=w2000-h1668-iv1";
+            case "에오스" -> "https://lh3.google.com/u/0/d/1WKmBiemmm5LHCdt6VJ4pDj5HlviWWxkI=w1920-h968-iv1";
+            case "핼리오스" -> "https://lh3.google.com/u/0/d/11kV1yU4St0EQIx_u26P3_lQ-Xf4v0_-j=w2000-h1668-iv1";
+            case null, default -> new CustomException(ErrorCode.NotFound, worldName).getMessage();
+        };
     }
 
     public void setCharacterInfo(CharacterBasicDTO characterInfo) {
         String characterName = characterInfo.getCharacterName();
         Optional<CharacterSearchJpaEntity> characterSearch = characterSearchRepository.findByCharacterName(characterName);
 
+        CharacterSearchJpaEntity entity;
         if(characterSearch.isPresent()){
-            CharacterSearchJpaEntity entity = CharacterSearchJpaEntity.builder()
+            entity = CharacterSearchJpaEntity.builder()
                     .id(characterSearch.get().getId())
                     .characterName(characterInfo.getCharacterName())
                     .characterLevel(characterInfo.getCharacterLevel())
@@ -437,9 +525,8 @@ public class NEXONUtils {
                     .createdAt(characterSearch.get().getCreatedAt())
                     .updatedAt(LocalDateTime.now())
                     .build();
-            characterSearchRepository.save(entity);
         }else{
-            CharacterSearchJpaEntity entity = CharacterSearchJpaEntity.builder()
+            entity = CharacterSearchJpaEntity.builder()
                     .characterName(characterInfo.getCharacterName())
                     .characterLevel(characterInfo.getCharacterLevel())
                     .worldName(characterInfo.getWorldName())
@@ -451,8 +538,8 @@ public class NEXONUtils {
                     .createdAt(LocalDateTime.now())
                     .updatedAt(LocalDateTime.now())
                     .build();
-            characterSearchRepository.save(entity);
         }
+        characterSearchRepository.save(entity);
     }
     // 자소 분리 함수
     public String separateJaso(String input) {
