@@ -4,6 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
+//import org.maping.maping.common.utills.gemini.dto.request.content;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -13,31 +14,27 @@ import java.util.List;
 @Data
 @ToString
 public class GeminiRequestDTO {
-    private List<Content> contents;
 
-    @Data
-    public class Content{
+        private String contents;
 
-        private List<Part> parts;
+        private String tools = """
+                [
+                          {
+                              "google_search": {}
+                          }
+                      ]""";
 
-        public Content(String text){
-            parts = new ArrayList<>();
-            Part part = new Part(text);
-            parts.add(part);
+
+        public void setText(String text) {
+            this.contents = String.format("""
+{
+    "contents": [
+        {
+            "parts": [
+                {"text": "%s"}
+            ]
         }
-
-        @Data
-        @NoArgsConstructor
-        @AllArgsConstructor
-        public class Part{
-            private String text;
+    ]
+}""", text);
         }
-    }
-
-
-    public void createGeminiReqDto(String text){
-        this.contents = new ArrayList<>();
-        Content content = new Content(text);
-        contents.add(content);
-    }
 }

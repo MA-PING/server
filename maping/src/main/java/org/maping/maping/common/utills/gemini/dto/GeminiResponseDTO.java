@@ -1,9 +1,12 @@
 package org.maping.maping.common.utills.gemini.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
+import org.maping.maping.common.utills.gemini.dto.response.CandidatesDTO;
+import org.maping.maping.common.utills.gemini.dto.response.UsageMetadataDTO;
 
 import java.util.List;
 
@@ -12,23 +15,12 @@ import java.util.List;
 @Data
 @ToString
 public class GeminiResponseDTO {
-    private List<Candidate> candidates;
+    @JsonProperty("candidates")
+    private List<CandidatesDTO> candidates;
 
-    @Data
-    public static class Candidate {
-        private Content content;
-        private String finishReason;
-    }
+    @JsonProperty("usageMetadata")
+    private UsageMetadataDTO usageMetadata;
 
-    @Data
-    public static class Content {
-        private List<Parts> parts;
-        private String role;
-
-    }
-
-    @Data
-    public static class Parts {
-        private String text;
-    }
+    @JsonProperty("modelVersion")
+    private String modelVersion;
 }

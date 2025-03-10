@@ -595,4 +595,6 @@ public class NEXONUtils {
             }
         }
     }
+
+    public String basic
 }
