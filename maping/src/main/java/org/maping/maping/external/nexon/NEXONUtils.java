@@ -11,6 +11,7 @@ import org.maping.maping.external.nexon.dto.character.CharacterDTO;
 import org.maping.maping.external.nexon.dto.character.CharacterInfoDTO;
 import org.maping.maping.external.nexon.dto.character.CharacterListDto;
 import org.maping.maping.external.nexon.dto.character.ability.CharacterAbilityDTO;
+import org.maping.maping.external.nexon.dto.character.cashItem.CharacterCashItemEquipmentDTO;
 import org.maping.maping.external.nexon.dto.character.itemEquipment.CharacterItemEquipmentDTO;
 import org.maping.maping.external.nexon.dto.character.matrix.CharacterHexaMatrixDTO;
 import org.maping.maping.external.nexon.dto.character.matrix.CharacterHexaMatrixStatDTO;
@@ -155,6 +156,16 @@ public class NEXONUtils {
         HttpHeaders headers = new HttpHeaders();
         headers.set("x-nxopen-api-key", Key);
         ResponseEntity<CharacterItemEquipmentDTO> response = new RestTemplate().exchange(fullUrl, HttpMethod.GET, new HttpEntity<>(headers), CharacterItemEquipmentDTO.class);
+        return response.getBody();
+    }
+
+    public CharacterCashItemEquipmentDTO getCharacterCashItemEquip(@NotBlank String ocid) {
+        String apiUrl = "https://open.api.nexon.com/maplestory/v1/character/cashitem-equipment";
+        String fullUrl = UriComponentsBuilder.fromUriString(apiUrl).queryParam("ocid", ocid).build().toUriString();
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("x-nxopen-api-key", Key);
+        ResponseEntity<CharacterCashItemEquipmentDTO> response = new RestTemplate().exchange(fullUrl, HttpMethod.GET, new HttpEntity<>(headers), CharacterCashItemEquipmentDTO.class);
         return response.getBody();
     }
 
@@ -624,5 +635,59 @@ public class NEXONUtils {
         return result.toString();
     }
 
+    public String unionString(UnionDTO union, UnionRaiderDTO unionRaiderDTO) {
+        StringBuilder result = new StringBuilder();
+
+        result.append(union.getUnionGrade()).append(", ").append(union.getUnionLevel()).append(",\n");
+        result.append(unionRaiderDTO.getUnionRaiderStat()).append(",\n");
+        result.append(unionRaiderDTO.getUnionOccupiedStat()).append(",\n");
+
+        for(int i = 0; i < unionRaiderDTO.getUnionBlock().size(); i++) {
+            result.append(unionRaiderDTO.getUnionBlock().get(i).getBlockClass()).append(", ").append(unionRaiderDTO.getUnionBlock().get(i).getBlockLevel()).append(",\n");
+        }
+
+
+        return result.toString();
+    }
+
+    public String artifactString(UnionArtifactDTO unionArtifact) {
+        StringBuilder result = new StringBuilder();
+        for(int i = 0; i < unionArtifact.getUnionArtifactEffect().size(); i++){
+            result.append(unionArtifact.getUnionArtifactEffect().get(i).getName()).append(": ").append(unionArtifact.getUnionArtifactEffect().get(i).getLevel()).append(",\n");
+        }
+        for(int i = 0; i < unionArtifact.getUnionArtifactCrystal().size(); i++) {
+            result.append(unionArtifact.getUnionArtifactCrystal().get(i).getName()).append(": {").append(unionArtifact.getUnionArtifactCrystal().get(i).getLevel()).append(", ")
+                    .append(unionArtifact.getUnionArtifactCrystal().get(i).getDateExpire()).append("}\n");
+        }
+        return result.toString();
+    }
+
+    public String skillString(CharacterSkillDTO skill5, CharacterSkillDTO skill6, CharacterLinkSkillDTO linkSkill) {
+        StringBuilder result = new StringBuilder();
+        result.append("5차 스킬\n");
+        for(int i = 0; i < skill5.getCharacterSkill().size(); i++){
+            result.append(skill5.getCharacterSkill().get(i).getSkillName()).append(": {").append(skill5.getCharacterSkill().get(i).getSkillLevel()).append(",")
+                    .append(skill5.getCharacterSkill().get(i).getSkillEffect()).append("}\n");
+        }
+        result.append("6차 스킬\n");
+        for(int i = 0; i < skill6.getCharacterSkill().size(); i++){
+            result.append(skill6.getCharacterSkill().get(i).getSkillName()).append(": {").append(skill6.getCharacterSkill().get(i).getSkillLevel()).append(",")
+                    .append(skill6.getCharacterSkill().get(i).getSkillEffect()).append("}\n");
+        }
+        result.append("링크 스킬\n");
+        for(int i = 0; i < linkSkill.getCharacterLinkSkill().size(); i++){
+            result.append(linkSkill.getCharacterLinkSkill().get(i).getSkillName()).append(": {").append(linkSkill.getCharacterLinkSkill().get(i).getSkillLevel()).append(",")
+                    .append(linkSkill.getCharacterLinkSkill().get(i).getSkillEffect()).append("}\n");
+        }
+        return result.toString();
+    }
+
+    public String symbolString(CharacterSymbolEquipmentDTO symbolEquipment) {
+        StringBuilder result = new StringBuilder();
+        for(int i = 0; i < symbolEquipment.getSymbol().size(); i++){
+            result.append(symbolEquipment.getSymbol().get(i).getSymbolName()).append(": ").append(symbolEquipment.getSymbol().get(i).getSymbolLevel()).append(",\n");
+        }
+        return result.toString();
+    }
 
 }

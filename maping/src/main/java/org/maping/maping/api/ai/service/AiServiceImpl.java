@@ -28,4 +28,19 @@ public class AiServiceImpl implements AiService{
     public String getAiUnion(String ocid) {
         return geminiUtils.getAiUnion(ocid);
     }
+
+    @Override
+    public String getAiArtifact(String ocid) {
+        return geminiUtils.getAiArtifact(ocid);
+    }
+
+    @Override
+    public String getAiSkill(String ocid) {
+        return geminiUtils.getAiSkill(ocid);
+    }
+
+    @Override
+    public String getAiSymbol(String ocid) {
+        return geminiUtils.getAiSymbol(ocid);
+    }
 }

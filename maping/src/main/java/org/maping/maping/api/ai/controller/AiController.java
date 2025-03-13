@@ -53,4 +53,37 @@ public class AiController {
         }
         return new BaseResponse<>(HttpStatus.OK.value(), "유니온 맞춤 훈수를 가져오는데 성공하였습니다.", aiServiceImpl.getAiUnion(requestDTO.getOcid()));
     }
+
+    @Operation(summary = "아티펙트 맞춤 훈수", description = "GEMINI 아티펙트 맞춤 훈수를 가져오는 API")
+    @ResponseStatus(HttpStatus.OK)
+    @GetMapping("artifact")
+    public BaseResponse<String> getAiArtifact(HttpServletRequest request,
+                                              @RequestBody AiAdviceRequest requestDTO) {
+        if(jwtUtil.getUserId(request) == null) {
+            return new BaseResponse<>(HttpStatus.UNAUTHORIZED.value(), "로그인이 필요합니다.", "로그인이 필요합니다.");
+        }
+        return new BaseResponse<>(HttpStatus.OK.value(), "아티펙트 맞춤 훈수를 가져오는데 성공하였습니다.", aiServiceImpl.getAiArtifact(requestDTO.getOcid()));
+    }
+
+    @Operation(summary = "스킬 맞춤 훈수", description = "GEMINI 스킬 맞춤 훈수를 가져오는 API")
+    @ResponseStatus(HttpStatus.OK)
+    @GetMapping("skill")
+    public BaseResponse<String> getAiSkill(HttpServletRequest request,
+                                           @RequestBody AiAdviceRequest requestDTO) {
+        if(jwtUtil.getUserId(request) == null) {
+            return new BaseResponse<>(HttpStatus.UNAUTHORIZED.value(), "���그인이 필요합니다.", "로그인이 필요합니다.");
+        }
+        return new BaseResponse<>(HttpStatus.OK.value(), "스킬 맞춤 훈수를 가져오는데 성공하였습니다.", aiServiceImpl.getAiSkill(requestDTO.getOcid()));
+    }
+
+    @Operation(summary = "심볼 맞춤 훈수", description = "GEMINI 심볼 맞춤 훈수를 가져오는 API")
+    @ResponseStatus(HttpStatus.OK)
+    @GetMapping("symbol")
+    public BaseResponse<String> getAiSymbol(HttpServletRequest request,
+                                            @RequestBody AiAdviceRequest requestDTO) {
+        if(jwtUtil.getUserId(request) == null) {
+            return new BaseResponse<>(HttpStatus.UNAUTHORIZED.value(), "로그인이 필요합니다.", "로그인이 필요합니다.");
+        }
+        return new BaseResponse<>(HttpStatus.OK.value(), "심볼 맞춤 훈수를 가져오는데 성공하였습니다.", aiServiceImpl.getAiSymbol(requestDTO.getOcid()));
+    }
 }
