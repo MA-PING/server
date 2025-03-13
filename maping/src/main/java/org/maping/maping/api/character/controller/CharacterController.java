@@ -10,7 +10,7 @@ import org.maping.maping.api.character.dto.response.CharacterListResponse;
 import org.maping.maping.api.character.service.CharacterServiceImpl;
 import org.maping.maping.common.response.BaseResponse;
 import org.maping.maping.common.utills.jwt.JWTUtill;
-import org.maping.maping.common.utills.nexon.dto.character.CharacterInfoDTO;
+import org.maping.maping.external.nexon.dto.character.CharacterInfoDTO;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.http.HttpStatus;

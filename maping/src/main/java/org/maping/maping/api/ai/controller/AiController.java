@@ -7,11 +7,8 @@ import lombok.RequiredArgsConstructor;
 import org.maping.maping.api.ai.dto.request.AiAdviceRequest;
 import org.maping.maping.api.ai.service.AiServiceImpl;
 import org.maping.maping.common.response.BaseResponse;
-import org.maping.maping.common.utills.gemini.GEMINIUtils;
-import org.maping.maping.common.utills.gemini.dto.GeminiRequestDTO;
 import org.maping.maping.common.utills.jwt.JWTUtill;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @lombok.extern.slf4j.Slf4j
@@ -33,5 +30,27 @@ public class AiController {
             return new BaseResponse<>(HttpStatus.UNAUTHORIZED.value(), "로그인이 필요합니다.", "로그인이 필요합니다.");
         }
         return new BaseResponse<>(HttpStatus.OK.value(), "스텟 맞춤 훈수를 가져오는데 성공하였습니다.", aiServiceImpl.getAiStat(requestDTO.getOcid()));
+    }
+
+    @Operation(summary = "장비 맞춤 훈수", description = "GEMINI 장비 맞춤 훈수를 가져오는 API")
+    @ResponseStatus(HttpStatus.OK)
+    @GetMapping("item")
+    public BaseResponse<String> getAiEquip(HttpServletRequest request,
+                                           @RequestBody AiAdviceRequest requestDTO) {
+        if(jwtUtil.getUserId(request) == null) {
+            return new BaseResponse<>(HttpStatus.UNAUTHORIZED.value(), "로그인이 필요합니다.", "로그인이 필요합니다.");
+        }
+        return new BaseResponse<>(HttpStatus.OK.value(), "장비 맞춤 훈수를 가져오는데 성공하였습니다.", aiServiceImpl.getAiItem(requestDTO.getOcid()));
+    }
+
+    @Operation(summary = "유니온 맞춤 훈수", description = "GEMINI 유니온 맞춤 훈수를 가져오는 API")
+    @ResponseStatus(HttpStatus.OK)
+    @GetMapping("union")
+    public BaseResponse<String> getAiUnion(HttpServletRequest request,
+                                           @RequestBody AiAdviceRequest requestDTO) {
+        if(jwtUtil.getUserId(request) == null) {
+            return new BaseResponse<>(HttpStatus.UNAUTHORIZED.value(), "로그인이 필요합니다.", "로그인이 필요합니다.");
+        }
+        return new BaseResponse<>(HttpStatus.OK.value(), "유니온 맞춤 훈수를 가져오는데 성공하였습니다.", aiServiceImpl.getAiUnion(requestDTO.getOcid()));
     }
 }
