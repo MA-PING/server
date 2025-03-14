@@ -5,11 +5,16 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.maping.maping.api.ai.dto.request.AiAdviceRequest;
+import org.maping.maping.api.ai.dto.response.NoticeSummaryResponse;
 import org.maping.maping.api.ai.service.AiServiceImpl;
 import org.maping.maping.common.response.BaseResponse;
 import org.maping.maping.common.utills.jwt.JWTUtill;
+import org.maping.maping.external.nexon.dto.notice.NoticeListDTO;
+import org.maping.maping.external.nexon.dto.notice.NoticeUpdateListDTO;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @lombok.extern.slf4j.Slf4j
 @Slf4j
@@ -85,5 +90,12 @@ public class AiController {
             return new BaseResponse<>(HttpStatus.UNAUTHORIZED.value(), "로그인이 필요합니다.", "로그인이 필요합니다.");
         }
         return new BaseResponse<>(HttpStatus.OK.value(), "심볼 맞춤 훈수를 가져오는데 성공하였습니다.", aiServiceImpl.getAiSymbol(requestDTO.getOcid()));
+    }
+
+    @Operation(summary = "패치노트 요약", description = "GEMINI 패치노트 요약을 가져오는 API")
+    @ResponseStatus(HttpStatus.OK)
+    @GetMapping("notice")
+    public BaseResponse<List<NoticeSummaryResponse>> getNoticeSummary() {
+        return new BaseResponse<>(HttpStatus.OK.value(), "패치노트 요약을 가져오는데 성공하였습니다.", aiServiceImpl.getNoticeSummary());
     }
 }

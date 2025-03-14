@@ -10,7 +10,7 @@ import lombok.ToString;
 @NoArgsConstructor
 @Data
 @ToString
-public class CandidatesDTO {
+public class CandidatesGoogleDTO {
     @JsonProperty("content")
     private ContentDTO content;
 
@@ -19,4 +19,7 @@ public class CandidatesDTO {
 
     @JsonProperty("index")
     private int index;
+
+    @JsonProperty("groundingMetadata")
+    private GroundingMetadataDTO groundingMetadata;
 }
