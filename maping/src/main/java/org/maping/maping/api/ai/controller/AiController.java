@@ -4,16 +4,23 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
+import org.apache.http.HttpException;
 import org.maping.maping.api.ai.dto.request.AiAdviceRequest;
+import org.maping.maping.api.ai.dto.request.AiChatRequest;
+import org.maping.maping.api.ai.dto.response.AiChatResponse;
 import org.maping.maping.api.ai.dto.response.NoticeSummaryResponse;
 import org.maping.maping.api.ai.service.AiServiceImpl;
+import org.maping.maping.common.enums.expection.ErrorCode;
 import org.maping.maping.common.response.BaseResponse;
 import org.maping.maping.common.utills.jwt.JWTUtill;
+import org.maping.maping.exceptions.CustomException;
 import org.maping.maping.external.nexon.dto.notice.NoticeListDTO;
 import org.maping.maping.external.nexon.dto.notice.NoticeUpdateListDTO;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.IOException;
 import java.util.List;
 
 @lombok.extern.slf4j.Slf4j
@@ -30,7 +37,7 @@ public class AiController {
     @ResponseStatus(HttpStatus.OK)
     @GetMapping("stat")
     public BaseResponse<String> getAiStat(HttpServletRequest request,
-                                          @RequestBody AiAdviceRequest requestDTO) {
+                                          @RequestBody AiAdviceRequest requestDTO) throws HttpException, IOException {
         if(jwtUtil.getUserId(request) == null) {
             return new BaseResponse<>(HttpStatus.UNAUTHORIZED.value(), "로그인이 필요합니다.", "로그인이 필요합니다.");
         }
@@ -41,7 +48,7 @@ public class AiController {
     @ResponseStatus(HttpStatus.OK)
     @GetMapping("item")
     public BaseResponse<String> getAiEquip(HttpServletRequest request,
-                                           @RequestBody AiAdviceRequest requestDTO) {
+                                           @RequestBody AiAdviceRequest requestDTO) throws HttpException, IOException {
         if(jwtUtil.getUserId(request) == null) {
             return new BaseResponse<>(HttpStatus.UNAUTHORIZED.value(), "로그인이 필요합니다.", "로그인이 필요합니다.");
         }
@@ -52,7 +59,7 @@ public class AiController {
     @ResponseStatus(HttpStatus.OK)
     @GetMapping("union")
     public BaseResponse<String> getAiUnion(HttpServletRequest request,
-                                           @RequestBody AiAdviceRequest requestDTO) {
+                                           @RequestBody AiAdviceRequest requestDTO) throws HttpException, IOException {
         if(jwtUtil.getUserId(request) == null) {
             return new BaseResponse<>(HttpStatus.UNAUTHORIZED.value(), "로그인이 필요합니다.", "로그인이 필요합니다.");
         }
@@ -63,7 +70,7 @@ public class AiController {
     @ResponseStatus(HttpStatus.OK)
     @GetMapping("artifact")
     public BaseResponse<String> getAiArtifact(HttpServletRequest request,
-                                              @RequestBody AiAdviceRequest requestDTO) {
+                                              @RequestBody AiAdviceRequest requestDTO) throws HttpException, IOException {
         if(jwtUtil.getUserId(request) == null) {
             return new BaseResponse<>(HttpStatus.UNAUTHORIZED.value(), "로그인이 필요합니다.", "로그인이 필요합니다.");
         }
@@ -74,7 +81,7 @@ public class AiController {
     @ResponseStatus(HttpStatus.OK)
     @GetMapping("skill")
     public BaseResponse<String> getAiSkill(HttpServletRequest request,
-                                           @RequestBody AiAdviceRequest requestDTO) {
+                                           @RequestBody AiAdviceRequest requestDTO) throws HttpException, IOException {
         if(jwtUtil.getUserId(request) == null) {
             return new BaseResponse<>(HttpStatus.UNAUTHORIZED.value(), "���그인이 필요합니다.", "로그인이 필요합니다.");
         }
@@ -85,7 +92,7 @@ public class AiController {
     @ResponseStatus(HttpStatus.OK)
     @GetMapping("symbol")
     public BaseResponse<String> getAiSymbol(HttpServletRequest request,
-                                            @RequestBody AiAdviceRequest requestDTO) {
+                                            @RequestBody AiAdviceRequest requestDTO) throws HttpException, IOException {
         if(jwtUtil.getUserId(request) == null) {
             return new BaseResponse<>(HttpStatus.UNAUTHORIZED.value(), "로그인이 필요합니다.", "로그인이 필요합니다.");
         }
@@ -97,5 +104,26 @@ public class AiController {
     @GetMapping("notice")
     public BaseResponse<List<NoticeSummaryResponse>> getNoticeSummary() {
         return new BaseResponse<>(HttpStatus.OK.value(), "패치노트 요약을 가져오는데 성공하였습니다.", aiServiceImpl.getNoticeSummary());
+    }
+
+    @Operation(summary = "챗봇 대화", description = "GEMINI 챗봇 대화하는 API")
+    @ResponseStatus(HttpStatus.OK)
+    @PostMapping("chat")
+    public BaseResponse<AiChatResponse> getChat(HttpServletRequest request,
+                                                @RequestBody AiChatRequest requestDTO) throws HttpException, IOException {
+        Long userId = Long.valueOf(jwtUtil.getUserId(request));
+        log.info(String.valueOf(requestDTO.getChatId()), requestDTO.getOcid(), requestDTO.getText());
+        return new BaseResponse<>(HttpStatus.OK.value(), "챗봇 대화 중", aiServiceImpl.getChat(userId, requestDTO.getChatId(), requestDTO.getOcid(), requestDTO.getText()));
+    }
+
+    @Operation(summary = "유저 추천 질문", description = "GEMINI 유저 추천 질문을 가져오는 API")
+    @ResponseStatus(HttpStatus.OK)
+    @GetMapping("recommend")
+    public BaseResponse<String> getRecommend(HttpServletRequest request,
+                                             @RequestBody AiAdviceRequest requestDTO) throws HttpException, IOException {
+        if(jwtUtil.getUserId(request) == null) {
+            return new BaseResponse<>(HttpStatus.UNAUTHORIZED.value(), "로그인이 필요합니다.", "로그인이 필요합니다.");
+        }
+        return new BaseResponse<>(HttpStatus.OK.value(), "유저 추천 질문을 가져오는데 성공하였습니다.", aiServiceImpl.getRecommend(requestDTO.getOcid()));
     }
 }

@@ -23,4 +23,6 @@ public class GeminiGoogleResponseDTO {
 
     @JsonProperty("modelVersion")
     private String modelVersion;
+
+
 }

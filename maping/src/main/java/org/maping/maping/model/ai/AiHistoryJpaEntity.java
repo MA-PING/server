@@ -6,12 +6,13 @@ import lombok.*;
 import org.maping.maping.model.user.UserInfoJpaEntity;
 
 import java.time.Instant;
+import java.time.OffsetDateTime;
 
 @Entity
 @Table(name = "AI_HISTORY_TB")
 @Getter
 @Setter
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@NoArgsConstructor
 @AllArgsConstructor
 @Builder
 public class AiHistoryJpaEntity {
@@ -26,7 +27,7 @@ public class AiHistoryJpaEntity {
 
     @NotNull
     @Column(name = "ai_date_time", nullable = false)
-    private Instant aiDateTime;
+    private OffsetDateTime aiDateTime;
 
     @Size(max = 255)
     @Column(name = "topic")
