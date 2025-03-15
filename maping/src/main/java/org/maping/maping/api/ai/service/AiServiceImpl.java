@@ -2,8 +2,10 @@ package org.maping.maping.api.ai.service;
 
 import lombok.extern.slf4j.Slf4j;
 import org.apache.http.HttpException;
-import org.maping.maping.api.ai.dto.response.AiChatResponse;
-import org.maping.maping.api.ai.dto.response.NoticeSummaryResponse;
+import org.maping.maping.api.ai.dto.response.*;
+import org.maping.maping.common.enums.expection.ErrorCode;
+import org.maping.maping.common.response.BaseResponse;
+import org.maping.maping.exceptions.CustomException;
 import org.maping.maping.external.gemini.GEMINIUtils;
 import org.maping.maping.external.nexon.NEXONUtils;
 import org.maping.maping.external.nexon.dto.character.CharacterBasicDTO;
@@ -21,8 +23,12 @@ import org.maping.maping.model.user.UserInfoJpaEntity;
 import org.maping.maping.repository.ai.AiHistoryRepository;
 import org.maping.maping.repository.ai.NoticeRepository;
 import org.maping.maping.repository.user.UserRepository;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
+import java.time.ZoneId;
+import java.util.ArrayList;
+import java.util.UUID;
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
@@ -37,13 +43,15 @@ public class AiServiceImpl implements AiService{
     private final NEXONUtils nexonUtils;
     private final AiHistoryRepository aiHistoryRepository;
     private final UserRepository userRepository;
+    private final AiHistoryConvert setAiHistoryConvert;
 
-    public AiServiceImpl(GEMINIUtils geminiUtils, NoticeRepository noticeRepository, NEXONUtils nexonUtils, AiHistoryRepository aiHistoryRepository, UserRepository userRepository) {
+    public AiServiceImpl(GEMINIUtils geminiUtils, NoticeRepository noticeRepository, NEXONUtils nexonUtils, AiHistoryRepository aiHistoryRepository, UserRepository userRepository, AiHistoryConvert setAiHistoryConvert) {
         this.geminiUtils = geminiUtils;
         this.noticeRepository = noticeRepository;
         this.nexonUtils = nexonUtils;
         this.aiHistoryRepository = aiHistoryRepository;
         this.userRepository = userRepository;
+        this.setAiHistoryConvert = setAiHistoryConvert;
     }
 
     @Override
@@ -156,39 +164,74 @@ public class AiServiceImpl implements AiService{
     }
 
     @Override
-    public AiChatResponse getChat(Long userId, Long chatId, String ocid, String text) throws HttpException, IOException {
+    public AiChatResponse getChat(Long userId, String chatId, String characterName, String type, String ocid, String text) throws HttpException, IOException {
+        OffsetDateTime koreaTime = OffsetDateTime.now(ZoneId.of("Asia/Seoul"));
         UserInfoJpaEntity userInfoJpaEntity = userRepository.findById(userId).orElse(null);
         AiChatResponse aiChatResponse = new AiChatResponse();
         AiHistoryJpaEntity aiHistoryJpaEntity = new AiHistoryJpaEntity();
+        List<AiChatHistoryDTO> HistoryListDTO = new ArrayList<>();
+        AiChatHistoryDTO aiChatHistoryDTO = new AiChatHistoryDTO();
         String content;
         if(chatId == null){
             content = geminiUtils.getGeminiGoogleResponse(text);
             String topic = geminiUtils.getGeminiResponse(text + "\n 이 내용에 대한 간단한 요약으로 30자 이내로 알려줘.");
+
+            //DTO에 값 넣기
+            aiChatHistoryDTO.setOcid(ocid);
+            aiChatHistoryDTO.setCharacterName(characterName);
+            aiChatHistoryDTO.setType(type);
+            aiChatHistoryDTO.setQuestion(text);
+            aiChatHistoryDTO.setAnswer(content);
+
+            //JPA에 값 넣기
+            aiHistoryJpaEntity.setChatId(UUID.randomUUID().toString());
+            log.info("chatId: {}", aiHistoryJpaEntity.getChatId());
             aiHistoryJpaEntity.setUser(userInfoJpaEntity);
             aiHistoryJpaEntity.setTopic(topic);
-            aiHistoryJpaEntity.setContent("user:::" + text + ";;;model:::" + content);
-            aiHistoryJpaEntity.setAiDateTime(OffsetDateTime.now());
+            HistoryListDTO.add(aiChatHistoryDTO);
+            aiHistoryJpaEntity.setContent(setAiHistoryConvert.getHistoryJson(HistoryListDTO));
+            aiHistoryJpaEntity.setUpdatedAt(koreaTime);
             AiHistoryJpaEntity savedEntity = aiHistoryRepository.save(aiHistoryJpaEntity);
 
+            //Response에 값 넣기
             aiChatResponse.setOcid(ocid);
             aiChatResponse.setText(content);
             aiChatResponse.setTopic(topic);
-            aiChatResponse.setChatId(savedEntity.getId());
+            aiChatResponse.setChatId(savedEntity.getChatId());
         }else{
-            AiHistoryJpaEntity aiHistoryChatId = aiHistoryRepository.findById(Objects.requireNonNull(chatId)).orElse(null);
-            content = geminiUtils.getGeminiChatResponse(Objects.requireNonNull(aiHistoryChatId).getContent(), text);
+            AiHistoryJpaEntity aiHistoryChatId = aiHistoryRepository.findByChatId(Objects.requireNonNull(chatId));
+
+            if(aiHistoryChatId == null){
+                throw new CustomException(ErrorCode.NotFound, "챗봇 대화가 존재하지 않습니다.");
+            }
+
+            HistoryListDTO = setAiHistoryConvert.setAiHistoryConvert(Objects.requireNonNull(aiHistoryChatId).getContent());
+            log.info("historyListDTO: {}", HistoryListDTO);
+            content = geminiUtils.getGeminiChatResponse(HistoryListDTO, text);
+
+            //DTO에 값 넣기
+            aiChatHistoryDTO.setOcid(ocid);
+            aiChatHistoryDTO.setCharacterName(characterName);
+            aiChatHistoryDTO.setType(type);
+            aiChatHistoryDTO.setQuestion(text);
+            aiChatHistoryDTO.setAnswer(content);
+
+            //JPA에 값 넣기
+            HistoryListDTO.add(aiChatHistoryDTO);
+            log.info(setAiHistoryConvert.getHistoryJson(HistoryListDTO));
+            aiHistoryJpaEntity.setChatId(aiHistoryChatId.getChatId());
+            aiHistoryJpaEntity.setUser(aiHistoryChatId.getUser());
+            aiHistoryJpaEntity.setTopic(aiHistoryChatId.getTopic());
+            aiHistoryJpaEntity.setContent(setAiHistoryConvert.getHistoryJson(HistoryListDTO));
+            aiHistoryJpaEntity.setUpdatedAt(koreaTime);
+            aiHistoryRepository.save(aiHistoryJpaEntity);
+
+            //Response에 값 넣기
             aiChatResponse.setOcid(ocid);
-            aiChatResponse.setText(text);
+            aiChatResponse.setText(content);
             aiChatResponse.setTopic(Objects.requireNonNull(aiHistoryChatId).getTopic());
             aiChatResponse.setChatId(chatId);
-
-            aiHistoryJpaEntity.setTopic(Objects.requireNonNull(aiHistoryChatId).getTopic());
-            aiHistoryJpaEntity.setContent(aiHistoryChatId.getContent() +"user:" + text + ", model:" + content);
-            aiHistoryJpaEntity.setAiDateTime(OffsetDateTime.now());
-            aiHistoryRepository.save(aiHistoryJpaEntity);
         }
-
-
 
         return aiChatResponse;
     }
@@ -198,7 +241,47 @@ public class AiServiceImpl implements AiService{
         CharacterBasicDTO basic = nexonUtils.getCharacterBasic(ocid);
         String basicString = nexonUtils.basicString(basic);
         String text = "기본정보 : {" + basicString + "}\n" +
-                "메이플 캐릭터의 기본 정보야 사용자에게 AI에게 물어볼만한 추천 질문 5개를 알려줘.";
+                "메이플 캐릭터의 기본 정보야 사용자에게 AI 에게 물어볼만한 추천 질문 5개를 알려줘.";
         return geminiUtils.getGeminiGoogleResponse(text);
+    }
+
+    @Override
+    public List<AiHistoryResponse> getHistory(Long userId) {
+        return aiHistoryRepository.findByUserId(userId).stream().map(history ->
+            AiHistoryResponse.builder()
+                    .chatId(history.getChatId())
+                    .topic(history.getTopic())
+                    .dateTime(history.getUpdatedAt())
+                    .build()
+        ).toList().reversed();
+    }
+
+    @Override
+    public BaseResponse<AiChatHistoryDetailResponse> getHistory(Long userId, String chatId) {
+        AiHistoryJpaEntity aiHistoryChatId = aiHistoryRepository.findByChatId(chatId);
+        if(aiHistoryChatId == null){
+            throw new CustomException(ErrorCode.NotFound, "챗봇 대화 기록이 존재하지 않습니다.");
+        }else if(aiHistoryChatId.getChatId().equals(chatId)){
+            return new BaseResponse<>(HttpStatus.OK.value(), "대화 기록을 가져왔습니다.", AiChatHistoryDetailResponse.builder()
+                    .chatId(chatId)
+                    .topic(aiHistoryChatId.getTopic())
+                    .dateTime(aiHistoryChatId.getUpdatedAt())
+                    .history(setAiHistoryConvert.setAiHistoryConvert(aiHistoryChatId.getContent()))
+                    .build());
+        }
+        throw new CustomException(ErrorCode.BadRequest, "대화 기록을 찾을 수 없습니다.");
+    }
+
+    @Override
+    public BaseResponse<String> deleteHistory(Long userId, String chatId) {
+        AiHistoryJpaEntity aiHistoryChatId = aiHistoryRepository.findByChatId(chatId);
+        log.info("aiHistoryChatId: {}", aiHistoryChatId);
+        if(aiHistoryChatId == null){
+            return new BaseResponse<>(HttpStatus.OK.value(), "챗봇 대화 기록이 존재하지 않습니다.", "챗봇 대화 기록이 존재하지 않습니다.");
+        }else if(aiHistoryChatId.getUser().getUserId().equals(userId)){
+            aiHistoryRepository.delete(aiHistoryChatId);
+            return new BaseResponse<>(HttpStatus.OK.value(), "챗봇 대화 기록을 삭제하였습니다.", "챗봇 대화 기록을 삭제하였습니다.");
+        }
+        return new BaseResponse<>(HttpStatus.OK.value(), "챗봇 대화 기록을 삭제할 수 없습니다.", "챗봇 대화 기록을 삭제할 수 없습니다.");
     }
 }

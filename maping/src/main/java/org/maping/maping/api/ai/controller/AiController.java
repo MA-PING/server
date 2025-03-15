@@ -7,7 +7,9 @@ import lombok.RequiredArgsConstructor;
 import org.apache.http.HttpException;
 import org.maping.maping.api.ai.dto.request.AiAdviceRequest;
 import org.maping.maping.api.ai.dto.request.AiChatRequest;
+import org.maping.maping.api.ai.dto.response.AiChatHistoryDetailResponse;
 import org.maping.maping.api.ai.dto.response.AiChatResponse;
+import org.maping.maping.api.ai.dto.response.AiHistoryResponse;
 import org.maping.maping.api.ai.dto.response.NoticeSummaryResponse;
 import org.maping.maping.api.ai.service.AiServiceImpl;
 import org.maping.maping.common.enums.expection.ErrorCode;
@@ -16,6 +18,7 @@ import org.maping.maping.common.utills.jwt.JWTUtill;
 import org.maping.maping.exceptions.CustomException;
 import org.maping.maping.external.nexon.dto.notice.NoticeListDTO;
 import org.maping.maping.external.nexon.dto.notice.NoticeUpdateListDTO;
+import org.maping.maping.model.ai.AiHistoryJpaEntity;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.web.bind.annotation.*;
@@ -113,10 +116,36 @@ public class AiController {
                                                 @RequestBody AiChatRequest requestDTO) throws HttpException, IOException {
         Long userId = Long.valueOf(jwtUtil.getUserId(request));
         log.info(String.valueOf(requestDTO.getChatId()), requestDTO.getOcid(), requestDTO.getText());
-        return new BaseResponse<>(HttpStatus.OK.value(), "챗봇 대화 중", aiServiceImpl.getChat(userId, requestDTO.getChatId(), requestDTO.getOcid(), requestDTO.getText()));
+        return new BaseResponse<>(HttpStatus.OK.value(), "챗봇 대화 중", aiServiceImpl.getChat(userId, requestDTO.getChatId(),requestDTO.getCharacterName(),requestDTO.getType(), requestDTO.getOcid(), requestDTO.getText()));
     }
 
-    @Operation(summary = "유저 추천 질문", description = "GEMINI 유저 추천 질문을 가져오는 API")
+    @Operation(summary = "챗봇 기록", description = "GEMINI 챗봇 기록을 가져오는 API")
+    @ResponseStatus(HttpStatus.OK)
+    @GetMapping("history")
+    public BaseResponse<List<AiHistoryResponse>> getHistory(HttpServletRequest request){
+        Long userId = Long.valueOf(jwtUtil.getUserId(request));
+        return new BaseResponse<>(HttpStatus.OK.value(), "챗봇 기록을 가져오는데 성공하였습니다.", aiServiceImpl.getHistory(userId));
+    }
+
+    @Operation(summary = "챗봇 대화 기록", description = "GEMINI 챗봇 대화 기록을 가져오는 API")
+    @ResponseStatus(HttpStatus.OK)
+    @GetMapping("history/{chatId}")
+    public BaseResponse<AiChatHistoryDetailResponse> getHistory(HttpServletRequest request,
+                                                                      @PathVariable String chatId){
+        Long userId = Long.valueOf(jwtUtil.getUserId(request));
+        return aiServiceImpl.getHistory(userId, chatId);
+    }
+
+    @Operation(summary = "챗봇 대화 기록 삭제", description = "GEMINI 챗봇 대화 기록을 삭제하는 API")
+    @ResponseStatus(HttpStatus.OK)
+    @DeleteMapping("history/{chatId}")
+    public BaseResponse<String> deleteHistory(HttpServletRequest request,
+                                              @PathVariable String chatId){
+        Long userId = Long.valueOf(jwtUtil.getUserId(request));
+        return aiServiceImpl.deleteHistory(userId, chatId);
+    }
+
+    @Operation(summary = "캐릭터 추천 질문", description = "GEMINI 캐릭터 추천 질문을 가져오는 API")
     @ResponseStatus(HttpStatus.OK)
     @GetMapping("recommend")
     public BaseResponse<String> getRecommend(HttpServletRequest request,
@@ -126,4 +155,6 @@ public class AiController {
         }
         return new BaseResponse<>(HttpStatus.OK.value(), "유저 추천 질문을 가져오는데 성공하였습니다.", aiServiceImpl.getRecommend(requestDTO.getOcid()));
     }
+
+    
 }

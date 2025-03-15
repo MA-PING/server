@@ -71,5 +71,13 @@ public class CharacterSearchJpaEntity {
     private LocalDateTime updatedAt;
 
 
+    @Size(max = 150)
+    @NotNull
+    @Column(name = "ocid", nullable = false, length = 150)
+    private String ocid;
+
+    @Size(max = 128)
+    @Column(name = "guild", length = 128)
+    private String guild;
 
 }

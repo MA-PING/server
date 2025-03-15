@@ -5,6 +5,7 @@ import com.google.genai.types.GenerateContentConfig;
 import lombok.extern.slf4j.Slf4j;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
+import org.maping.maping.api.ai.dto.response.AiChatHistoryDTO;
 import org.maping.maping.external.gemini.dto.*;
 import org.maping.maping.external.nexon.NEXONUtils;
 import org.maping.maping.external.nexon.dto.notice.NoticeDetailDTO;
@@ -131,21 +132,19 @@ public String getGeminiResponse(String text){
         return Objects.requireNonNull(response.getBody()).getCandidates().getFirst().getContent().getParts().getFirst().getText();
     }
 
-    public String getGeminiChatResponse(String history, String text){
-        GeminiChatRequestDTO geminiCahtRequestDTO = new GeminiChatRequestDTO();
+    public String getGeminiChatResponse(List<AiChatHistoryDTO> history, String text){
+        GeminiChatRequestDTO geminiChatRequestDTO = new GeminiChatRequestDTO();
         String fullURL = Gemini2URL + GEMINI_API_KEY;
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
 
-        List<String> historyList = Arrays.asList(history.split(";;;"));
+        String user = history.getLast().getQuestion();
+        String model = history.getLast().getAnswer();
 
-        String user = historyList.get(historyList.size() - 2).replace("user:::", "");
-        String model = historyList.getLast().replace("model:::", "");
-        geminiCahtRequestDTO.setText(user, model, text);
-        String requestBody = geminiCahtRequestDTO.getContents();
+        geminiChatRequestDTO.setText(user, model, text);
+        String requestBody = geminiChatRequestDTO.getContents();
 
         ResponseEntity<GeminiGoogleResponseDTO> response = new RestTemplate().exchange(fullURL, HttpMethod.POST, new HttpEntity<>(requestBody, headers), GeminiGoogleResponseDTO.class);
-
         return Objects.requireNonNull(response.getBody()).getCandidates().getFirst().getContent().getParts().getFirst().getText();
     }
 

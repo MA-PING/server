@@ -21,20 +21,20 @@ public class AiHistoryJpaEntity {
     private UserInfoJpaEntity user;
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "session_id", nullable = false)
-    private Long id;
-
-    @NotNull
-    @Column(name = "ai_date_time", nullable = false)
-    private OffsetDateTime aiDateTime;
+    @Size(max = 36)
+    @Column(name = "chat_id", nullable = false, length = 36)
+    private String chatId;
 
     @Size(max = 255)
     @Column(name = "topic")
     private String topic;
 
     @Lob
-    @Column(name = "content")
+    @Column(name = "content", columnDefinition = "LONGTEXT")
     private String content;
+
+    @NotNull
+    @Column(name = "updated_at", nullable = false)
+    private OffsetDateTime updatedAt;
 
 }

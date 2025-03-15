@@ -10,7 +10,7 @@ import lombok.ToString;
 @Data
 @ToString
 public class AiChatResponse {
-    private Long chatId;
+    private String chatId;
     private String topic;
     private String ocid;
     private String text;

@@ -1,10 +1,13 @@
 package org.maping.maping.api.ai.service;
 
 import org.apache.http.HttpException;
+import org.maping.maping.api.ai.dto.response.AiChatHistoryDetailResponse;
 import org.maping.maping.api.ai.dto.response.AiChatResponse;
 import org.maping.maping.api.ai.dto.response.NoticeSummaryResponse;
+import org.maping.maping.common.response.BaseResponse;
 import org.maping.maping.external.nexon.dto.notice.NoticeUpdateListDTO;
-
+import org.maping.maping.model.ai.AiHistoryJpaEntity;
+import org.maping.maping.api.ai.dto.response.AiHistoryResponse;
 import java.io.IOException;
 import java.util.List;
 
@@ -21,7 +24,13 @@ public interface AiService {
 
     List<NoticeSummaryResponse> getNoticeSummary();
 
-    AiChatResponse getChat(Long userId, Long chatId, String ocid, String text) throws HttpException, IOException;
+    AiChatResponse getChat(Long userId, String chatId, String characterName, String type, String ocid, String text) throws HttpException, IOException;
 
     String getRecommend(String ocid) throws HttpException, IOException;
+
+    List<AiHistoryResponse> getHistory(Long userId);
+
+    BaseResponse<AiChatHistoryDetailResponse> getHistory(Long userId, String chatId);
+
+    BaseResponse<String> deleteHistory(Long userId, String chatId);
 }

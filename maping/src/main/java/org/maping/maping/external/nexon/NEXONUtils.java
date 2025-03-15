@@ -51,7 +51,7 @@ public class NEXONUtils {
 
     public final String Key;
     private final CharacterSearchRepository characterSearchRepository;
-    private final BlockingQueue<CompletableFuture<CharacterBasicDTO>> jsonQueue = new LinkedBlockingQueue<>();
+    private final BlockingQueue<CharacterBasicDTO> jsonQueue = new LinkedBlockingQueue<>();
 
     public NEXONUtils(@Value("${spring.nexon.key}") String key, CharacterSearchRepository characterSearchRepository) {
         this.Key = key;
@@ -430,6 +430,15 @@ public class NEXONUtils {
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
+        if(search){
+            new Thread(() -> {
+                try {
+                    jsonQueue.put(characterInfo.getBasic());
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
+            }).start();
+        }
 
 //        CompletableFuture<CharacterBasicDTO> basic = CompletableFuture.supplyAsync(() -> getCharacterBasic(ocid));
 //        CompletableFuture<CharacterStatDto> stat = CompletableFuture.supplyAsync(() -> getCharacterStat(ocid));
@@ -523,12 +532,14 @@ public class NEXONUtils {
         if (characterSearch.isPresent()) {
             entity = CharacterSearchJpaEntity.builder()
                     .id(characterSearch.get().getId())
+                    .ocid(characterSearch.get().getOcid())
                     .characterName(characterInfo.getCharacterName())
                     .characterLevel(characterInfo.getCharacterLevel())
                     .worldName(characterInfo.getWorldName())
                     .characterClass(characterInfo.getCharacterClass())
                     .image(characterInfo.getCharacterImage())
                     .worldImg(getWorldImgUrl(characterInfo.getWorldName()))
+                    .guild(characterInfo.getCharacterGuildName())
                     .jaso(separateJaso(characterInfo.getCharacterName()))
                     .count(characterSearch.get().getCount() + 1)
                     .createdAt(characterSearch.get().getCreatedAt())
@@ -598,10 +609,10 @@ public class NEXONUtils {
     @Scheduled(fixedDelay = 1000 * 30) //15분 1000 * 60 * 15 , 30초 1000 * 30
     public void setCharacterSearch() {
         while (!jsonQueue.isEmpty()) {
-            CompletableFuture<CharacterBasicDTO> basic = jsonQueue.poll();
+            CharacterBasicDTO basic = jsonQueue.poll();
             if (basic != null) {
-                setCharacterInfo(basic.join());
-                log.info("캐릭터 검색 테이블 삽입: {}", basic.join().getCharacterName());
+                setCharacterInfo(basic);
+                log.info("캐릭터 검색 테이블 삽입: {}", basic.getCharacterName());
             }
         }
     }
