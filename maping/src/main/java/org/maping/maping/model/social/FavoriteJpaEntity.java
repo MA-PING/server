@@ -11,16 +11,17 @@ import org.maping.maping.model.user.UserInfoJpaEntity;
 @AllArgsConstructor
 public class FavoriteJpaEntity {
 
-        @Id
-        @GeneratedValue(strategy = GenerationType.IDENTITY)
-        private Long favoriteId;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "favorite_id")
+    private Long favoriteId;
 
-        @ManyToOne(fetch = FetchType.LAZY)
-        @JoinColumn(name = "user_id", nullable = false)
-        private UserInfoJpaEntity user;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false)
+    private UserInfoJpaEntity user;
 
-        @ManyToOne(fetch = FetchType.LAZY)
-        @JoinColumn(name = "character_id", nullable = false)
-        private CharacterSearchJpaEntity character;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "character_id", nullable = false)
+    private CharacterSearchJpaEntity character;
 
 }
