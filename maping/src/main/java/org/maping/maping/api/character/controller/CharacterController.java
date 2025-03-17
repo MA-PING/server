@@ -4,9 +4,11 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
+import org.maping.maping.api.character.dto.request.ApiKeyCheckRequest;
 import org.maping.maping.api.character.dto.request.OcidRequest;
 import org.maping.maping.api.character.dto.response.AutocompleteResponse;
 import org.maping.maping.api.character.dto.response.CharacterListResponse;
+import org.maping.maping.api.character.dto.response.CharacterResponse;
 import org.maping.maping.api.character.service.CharacterServiceImpl;
 import org.maping.maping.common.response.BaseResponse;
 import org.maping.maping.common.utills.jwt.JWTUtill;
@@ -43,7 +45,7 @@ public class CharacterController {
         return new BaseResponse<>(HttpStatus.OK.value(), "자동완성울 가져오는데 성공하였습니다.", characterServiceImpl.getAutocomplete(characterName));
     }
 
-    @Operation(summary = "api용 캐릭터 리스트", description = "Api로 캐릭터 리스트를 가져오는 API")
+    @Operation(summary = "api 용 캐릭터 리스트", description = "Api 로 캐릭터 리스트를 가져오는 API")
     @ResponseStatus(HttpStatus.OK)
     @GetMapping("character/apiList")
     public BaseResponse<CharacterListResponse> getApiCharacterList(@RequestBody OcidRequest apiKey) {
@@ -64,5 +66,12 @@ public class CharacterController {
     @GetMapping("character/refresh")
     public BaseResponse<CharacterInfoDTO> getRefreshCharacterInfo(@RequestParam String characterName) {
         return new BaseResponse<>(HttpStatus.OK.value(), "캐릭터 정보를 가져오는데 성공하였습니다.", characterServiceImpl.getRefreshCharacterInfo(characterName));
+    }
+
+    @Operation(summary = "api 테스트", description = "api 키를 검증하는 API")
+    @ResponseStatus(HttpStatus.OK)
+    @GetMapping("character/check")
+    public BaseResponse<CharacterResponse> getApiCheck(@RequestBody ApiKeyCheckRequest apiKey) {
+        return new BaseResponse<>(HttpStatus.OK.value(), "api 키를 검증하는 API", characterServiceImpl.getApiCheck(apiKey.getApiKey()));
     }
 }

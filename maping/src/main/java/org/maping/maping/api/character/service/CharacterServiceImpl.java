@@ -4,7 +4,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.maping.maping.api.character.dto.request.OcidRequest;
 import org.maping.maping.api.character.dto.response.AutocompleteResponse;
 import org.maping.maping.api.character.dto.response.CharacterListResponse;
+import org.maping.maping.api.character.dto.response.CharacterResponse;
+import org.maping.maping.common.enums.expection.ErrorCode;
+import org.maping.maping.exceptions.CustomException;
 import org.maping.maping.external.nexon.NEXONUtils;
+import org.maping.maping.external.nexon.dto.character.CharacterBasicDTO;
 import org.maping.maping.external.nexon.dto.character.CharacterDTO;
 import org.maping.maping.external.nexon.dto.character.CharacterInfoDTO;
 import org.maping.maping.external.nexon.dto.character.CharacterListDto;
@@ -37,14 +41,14 @@ public class CharacterServiceImpl implements CharacterService {
 
     public CharacterInfoDTO getCharacterInfo(String characterName) {
         if(characterName == null || characterName.trim().isEmpty()) {
-            throw new IllegalArgumentException("캐릭터 이름을 입력해주세요.");
+            throw new CustomException(ErrorCode.Forbidden, "캐릭터 이름을 입력해주세요.");
         }
         CharacterDTO characterDto = nexonUtils.getOcid(characterName);
         String ocid = characterDto.getOcid();
         log.info("service ocid: {}", ocid);
 
         if (ocid == null || ocid.trim().isEmpty()) {
-            throw new IllegalArgumentException("유효하지 않은 ocid입니다.");
+            throw new CustomException(ErrorCode.BadRequest, "유효하지 않은 ocid 입니다.");
         }
         return nexonUtils.getCharacterInfo(ocid, true);
     }
@@ -52,7 +56,7 @@ public class CharacterServiceImpl implements CharacterService {
     @Override
     public List<AutocompleteResponse> getAutocomplete(String characterName) {
         if(characterName == null || characterName.trim().isEmpty()) {
-            throw new IllegalArgumentException("캐릭터 이름을 입력해주세요.");
+            throw new CustomException(ErrorCode.Forbidden, "캐릭터 이름을 입력해주세요.");
         }
         String jaso = nexonUtils.separateJaso(characterName);
         log.info("service jaso: {}", jaso);
@@ -85,15 +89,34 @@ public class CharacterServiceImpl implements CharacterService {
     @Override
     public CharacterInfoDTO getRefreshCharacterInfo(String characterName) {
         if(characterName == null || characterName.trim().isEmpty()) {
-            throw new IllegalArgumentException("캐릭터 이름을 입력해주세요.");
+            throw new CustomException(ErrorCode.Forbidden, "캐릭터 이름을 입력해주세요.");
         }
         CharacterDTO characterDto = nexonUtils.getOcid(characterName);
         String ocid = characterDto.getOcid();
         log.info("service ocid: {}", ocid);
 
         if (ocid == null || ocid.trim().isEmpty()) {
-            throw new IllegalArgumentException("유효하지 않은 ocid입니다.");
+            throw new CustomException(ErrorCode.BadRequest, "유효하지 않은 ocid 입니다.");
         }
         return nexonUtils.getCharacterInfo(ocid, false);
+    }
+
+    @Override
+    public CharacterResponse getApiCheck(String apiKey) {
+        if(apiKey == null || apiKey.trim().isEmpty()) {
+            throw new CustomException(ErrorCode.Forbidden, "API 키를 입력해주세요.");
+        }
+        CharacterListDto characterListDto = nexonUtils.getCharacterList(apiKey);
+        CharacterBasicDTO characterBasicDTO = nexonUtils.getCharacterBasic(characterListDto.getAccountList().getFirst().getCharacterList().getFirst().getOcid());
+
+        return CharacterResponse.builder()
+                .characterName(characterBasicDTO.getCharacterName())
+                .worldName(characterBasicDTO.getWorldName())
+                .worldImage(nexonUtils.getWorldImgUrl(characterBasicDTO.getWorldName()))
+                .characterClass(characterBasicDTO.getCharacterClass())
+                .characterLevel(characterBasicDTO.getCharacterLevel())
+                .characterGuildName(characterBasicDTO.getCharacterGuildName())
+                .characterImage(characterBasicDTO.getCharacterImage())
+                .build();
     }
 }
