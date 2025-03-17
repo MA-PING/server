@@ -3,7 +3,6 @@ package org.maping.maping.external.nexon;
 import jakarta.validation.constraints.NotBlank;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
-import org.maping.maping.api.character.dto.response.FavoriteResponse;
 import org.maping.maping.common.enums.expection.ErrorCode;
 import org.maping.maping.external.nexon.dto.character.CharacterBasicDTO;
 import org.maping.maping.external.nexon.dto.character.CharacterDTO;
@@ -33,16 +32,13 @@ import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.HttpClientErrorException;
-import org.springframework.web.client.RestTemplate;
-import org.springframework.web.util.UriComponentsBuilder;
+import org.springframework.web.client.RestClient;
 import org.springframework.beans.factory.annotation.Value;
 
-import java.net.URLEncoder;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.*;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
 
 @Slf4j
 @RestController
@@ -61,24 +57,21 @@ public class NEXONUtils {
 
     // 캐릭터 이름을 통해 ocid를 가져오는 API
     public CharacterDTO getOcid(@NonNull String characterName) {
-        String apiUrl = "https://open.api.nexon.com/maplestory/v1/id";
         log.info("getOcid: {}", characterName);
+        RestClient restClient = RestClient.builder()
+                .baseUrl("https://open.api.nexon.com/maplestory/v1/id")
+                .defaultHeader("x-nxopen-api-key", Key)
+                .build();
 
-        // 캐릭터 이름을 URL 인코딩
-        String encodedCharacterName = URLEncoder.encode(characterName, UTF_8);
-        log.info(encodedCharacterName);
-
-        String fullUrl = UriComponentsBuilder.fromUriString(apiUrl)
-                .queryParam("character_name", characterName)
-                .build()
-                .toUriString();
-
-        HttpHeaders headers = new HttpHeaders();
-        headers.set("x-nxopen-api-key", Key);
         try {
-            ResponseEntity<CharacterDTO> responseEntity = new RestTemplate().exchange(fullUrl, HttpMethod.GET, new HttpEntity<>(headers), CharacterDTO.class);
-            return responseEntity.getBody();
-        } catch (HttpClientErrorException e) {
+            return restClient.get()
+                    .uri(uriBuilder -> uriBuilder.queryParam("character_name", characterName).build())
+                    .retrieve()
+                    .onStatus(HttpStatusCode::is4xxClientError, (request, response) -> {
+                        throw new CustomException(ErrorCode.Forbidden, (response.getStatusCode() + response.getHeaders().toString()));
+                    })
+                    .body(CharacterDTO.class);
+        }catch (HttpClientErrorException e) {
             log.error("Error response: {}", e.getResponseBodyAsString());
             throw e;
         }
@@ -86,258 +79,363 @@ public class NEXONUtils {
 
     // ocid를 통해 캐릭터의 기본 정보를 가져오는 API
     public CharacterBasicDTO getCharacterBasic(@NonNull String ocid) {
-        String apiUrl = "https://open.api.nexon.com/maplestory/v1/character/basic";
-        String fullUrl = UriComponentsBuilder.fromUriString(apiUrl).queryParam("ocid", ocid).build().toUriString();
+        RestClient restClient = RestClient.builder()
+                .baseUrl("https://open.api.nexon.com/maplestory/v1/character/basic")
+                .defaultHeader("x-nxopen-api-key", Key)
+                .build();
 
-        HttpHeaders headers = new HttpHeaders();
-        headers.set("x-nxopen-api-key", Key);
-
-        ResponseEntity<CharacterBasicDTO> response = new RestTemplate().exchange(fullUrl, HttpMethod.GET, new HttpEntity<>(headers), CharacterBasicDTO.class);
-        if (response.getStatusCode() != HttpStatus.OK) {
-            throw new CustomException(ErrorCode.NotFound, "api 호출 실패");
-        }
-        return response.getBody();
+        return restClient.get()
+                .uri(uriBuilder -> uriBuilder.queryParam("ocid", ocid).build())
+                .retrieve()
+                .onStatus(HttpStatusCode::is4xxClientError, (request, response) -> {
+                    throw new CustomException(ErrorCode.Forbidden, (response.getStatusCode() + response.getHeaders().toString()));
+                })
+                .body(CharacterBasicDTO.class);
     }
 
     // API 키를 통해 캐릭터 리스트를 가져오는 API
     public CharacterListDto getCharacterList(@NotBlank String apiKey) {
-        String apiUrl = "https://open.api.nexon.com/maplestory/v1/character/list";
-        HttpHeaders headers = new HttpHeaders();
-        headers.set("x-nxopen-api-key", apiKey);
+        RestClient restClient = RestClient.builder()
+                .baseUrl("https://open.api.nexon.com/maplestory/v1/character/list")
+                .defaultHeader("x-nxopen-api-key", apiKey)
+                .build();
 
-        ResponseEntity<CharacterListDto> response = new RestTemplate().exchange(apiUrl, HttpMethod.GET, new HttpEntity<>(headers), CharacterListDto.class);
-        return response.getBody();
+        return restClient.get()
+                .retrieve()
+                .onStatus(HttpStatusCode::is4xxClientError, (request, response) -> {
+                    throw new CustomException(ErrorCode.Forbidden, (response.getStatusCode() + response.getHeaders().toString()));
+                })
+                .body(CharacterListDto.class);
     }
 
     // ocid를 통해 캐릭터의 스탯을 가져오는 API
     public CharacterStatDto getCharacterStat(@NotBlank String ocid) {
-        String apiUrl = "https://open.api.nexon.com/maplestory/v1/character/stat";
-        String fullUrl = UriComponentsBuilder.fromUriString(apiUrl).queryParam("ocid", ocid).build().toUriString();
+        RestClient restClient = RestClient.builder()
+                .baseUrl("https://open.api.nexon.com/maplestory/v1/character/stat")
+                .defaultHeader("x-nxopen-api-key", Key)
+                .build();
 
-        HttpHeaders headers = new HttpHeaders();
-        headers.set("x-nxopen-api-key", Key);
-        ResponseEntity<CharacterStatDto> response = new RestTemplate().exchange(fullUrl, HttpMethod.GET, new HttpEntity<>(headers), CharacterStatDto.class);
-        return response.getBody();
+        return restClient.get()
+                .uri(uriBuilder -> uriBuilder.queryParam("ocid", ocid).build())
+                .retrieve()
+                .onStatus(HttpStatusCode::is4xxClientError, (request, response) -> {
+                    throw new CustomException(ErrorCode.Forbidden, (response.getStatusCode() + response.getHeaders().toString()));
+                })
+                .body(CharacterStatDto.class);
     }
 
     // ocid를 통해 캐릭터의 하이퍼스탯을 가져오는 API
     public CharacterHyperStatDTO getCharacterHyperStat(@NotBlank String ocid) {
-        String apiUrl = "https://open.api.nexon.com/maplestory/v1/character/hyper-stat";
-        String fullUrl = UriComponentsBuilder.fromUriString(apiUrl).queryParam("ocid", ocid).build().toUriString();
+        RestClient restClient = RestClient.builder()
+                .baseUrl("https://open.api.nexon.com/maplestory/v1/character/hyper-stat")
+                .defaultHeader("x-nxopen-api-key", Key)
+                .build();
 
-        HttpHeaders headers = new HttpHeaders();
-        headers.set("x-nxopen-api-key", Key);
-
-        ResponseEntity<CharacterHyperStatDTO> response = new RestTemplate().exchange(fullUrl, HttpMethod.GET, new HttpEntity<>(headers), CharacterHyperStatDTO.class);
-        return response.getBody();
+        return restClient.get()
+                .uri(uriBuilder -> uriBuilder.queryParam("ocid", ocid).build())
+                .retrieve()
+                .onStatus(HttpStatusCode::is4xxClientError, (request, response) -> {
+                    throw new CustomException(ErrorCode.Forbidden, (response.getStatusCode() + response.getHeaders().toString()));
+                })
+                .body(CharacterHyperStatDTO.class);
     }
 
     // ocid를 통해 캐릭터의 능력치를 가져오는 API
     public CharacterAbilityDTO getCharacterAbility(@NotBlank String ocid) {
-        String apiUrl = "https://open.api.nexon.com/maplestory/v1/character/ability";
-        String fullUrl = UriComponentsBuilder.fromUriString(apiUrl).queryParam("ocid", ocid).build().toUriString();
+        RestClient restClient = RestClient.builder()
+                .baseUrl("https://open.api.nexon.com/maplestory/v1/character/ability")
+                .defaultHeader("x-nxopen-api-key", Key)
+                .build();
 
-        HttpHeaders headers = new HttpHeaders();
-        headers.set("x-nxopen-api-key", Key);
-
-        ResponseEntity<CharacterAbilityDTO> response = new RestTemplate().exchange(fullUrl, HttpMethod.GET, new HttpEntity<>(headers), CharacterAbilityDTO.class);
-        return response.getBody();
+        return restClient.get()
+                .uri(uriBuilder -> uriBuilder.queryParam("ocid", ocid).build())
+                .retrieve()
+                .onStatus(HttpStatusCode::is4xxClientError, (request, response) -> {
+                    throw new CustomException(ErrorCode.Forbidden, (response.getStatusCode() + response.getHeaders().toString()));
+                })
+                .body(CharacterAbilityDTO.class);
     }
 
     // ocid를 통해 캐릭터의 아이템 정보를 가져오는 API
     public CharacterItemEquipmentDTO getCharacterItemEquip(@NotBlank String ocid) {
-        String apiUrl = "https://open.api.nexon.com/maplestory/v1/character/item-equipment";
-        String fullUrl = UriComponentsBuilder.fromUriString(apiUrl).queryParam("ocid", ocid).build().toUriString();
+        RestClient restClient = RestClient.builder()
+                .baseUrl("https://open.api.nexon.com/maplestory/v1/character/item-equipment")
+                .defaultHeader("x-nxopen-api-key", Key)
+                .build();
 
-        HttpHeaders headers = new HttpHeaders();
-        headers.set("x-nxopen-api-key", Key);
-        ResponseEntity<CharacterItemEquipmentDTO> response = new RestTemplate().exchange(fullUrl, HttpMethod.GET, new HttpEntity<>(headers), CharacterItemEquipmentDTO.class);
-        return response.getBody();
+        return restClient.get()
+                .uri(uriBuilder -> uriBuilder.queryParam("ocid", ocid).build())
+                .retrieve()
+                .onStatus(HttpStatusCode::is4xxClientError, (request, response) -> {
+                    throw new CustomException(ErrorCode.Forbidden, (response.getStatusCode() + response.getHeaders().toString()));
+                })
+                .body(CharacterItemEquipmentDTO.class);
     }
 
     public CharacterCashItemEquipmentDTO getCharacterCashItemEquip(@NotBlank String ocid) {
-        String apiUrl = "https://open.api.nexon.com/maplestory/v1/character/cashitem-equipment";
-        String fullUrl = UriComponentsBuilder.fromUriString(apiUrl).queryParam("ocid", ocid).build().toUriString();
+        RestClient restClient = RestClient.builder()
+                .baseUrl("https://open.api.nexon.com/maplestory/v1/character/cashitem-equipment")
+                .defaultHeader("x-nxopen-api-key", Key)
+                .build();
 
-        HttpHeaders headers = new HttpHeaders();
-        headers.set("x-nxopen-api-key", Key);
-        ResponseEntity<CharacterCashItemEquipmentDTO> response = new RestTemplate().exchange(fullUrl, HttpMethod.GET, new HttpEntity<>(headers), CharacterCashItemEquipmentDTO.class);
-        return response.getBody();
+        return restClient.get()
+                .uri(uriBuilder -> uriBuilder.queryParam("ocid", ocid).build())
+                .retrieve()
+                .onStatus(HttpStatusCode::is4xxClientError, (request, response) -> {
+                    throw new CustomException(ErrorCode.Forbidden, (response.getStatusCode() + response.getHeaders().toString()));
+                })
+                .body(CharacterCashItemEquipmentDTO.class);
     }
 
     // ocid를 통해 캐릭터의 심볼 정보를 가져오는 API
     public CharacterSymbolEquipmentDTO getCharacterSymbolEquipment(@NotBlank String ocid) {
-        String apiUrl = "https://open.api.nexon.com/maplestory/v1/character/symbol-equipment";
-        String fullUrl = UriComponentsBuilder.fromUriString(apiUrl).queryParam("ocid", ocid).build().toUriString();
+        RestClient restClient = RestClient.builder()
+                .baseUrl("https://open.api.nexon.com/maplestory/v1/character/symbol-equipment")
+                .defaultHeader("x-nxopen-api-key", Key)
+                .build();
 
-        HttpHeaders headers = new HttpHeaders();
-        headers.set("x-nxopen-api-key", Key);
-
-        ResponseEntity<CharacterSymbolEquipmentDTO> response = new RestTemplate().exchange(fullUrl, HttpMethod.GET, new HttpEntity<>(headers), CharacterSymbolEquipmentDTO.class);
-        return response.getBody();
+        return restClient.get()
+                .uri(uriBuilder -> uriBuilder.queryParam("ocid", ocid).build())
+                .retrieve()
+                .onStatus(HttpStatusCode::is4xxClientError, (request, response) -> {
+                    throw new CustomException(ErrorCode.Forbidden, (response.getStatusCode() + response.getHeaders().toString()));
+                })
+                .body(CharacterSymbolEquipmentDTO.class);
     }
 
     // ocid를 통해 캐릭터의 스킬 정보를 가져오는 API
     public CharacterSkillDTO getCharacterSkill5(@NotBlank String ocid, int skillGrade) {
-        String apiUrl = "https://open.api.nexon.com/maplestory/v1/character/skill";
-        String fullUrl = UriComponentsBuilder.fromUriString(apiUrl).queryParam("ocid", ocid).queryParam("character_skill_grade", skillGrade).build().toUriString();
+        RestClient restClient = RestClient.builder()
+                .baseUrl("https://open.api.nexon.com/maplestory/v1/character/skill")
+                .defaultHeader("x-nxopen-api-key", Key)
+                .build();
 
-        HttpHeaders headers = new HttpHeaders();
-        headers.set("x-nxopen-api-key", Key);
-
-        ResponseEntity<CharacterSkillDTO> response = new RestTemplate().exchange(fullUrl, HttpMethod.GET, new HttpEntity<>(headers), CharacterSkillDTO.class);
-        return response.getBody();
+        return restClient.get()
+                .uri(uriBuilder -> uriBuilder
+                        .queryParam("ocid", ocid)
+                        .queryParam("character_skill_grade", skillGrade)
+                        .build())
+                .retrieve()
+                .onStatus(HttpStatusCode::is4xxClientError, (request, response) -> {
+                    throw new CustomException(ErrorCode.Forbidden, (response.getStatusCode() + response.getHeaders().toString()));
+                })
+                .body(CharacterSkillDTO.class);
     }
 
     // ocid를 통해 캐릭터의 링크 스킬 정보를 가져오는 API
     public CharacterLinkSkillDTO getCharacterLinkSkill(@NotBlank String ocid) {
-        String apiUrl = "https://open.api.nexon.com/maplestory/v1/character/link-skill";
-        String fullUrl = UriComponentsBuilder.fromUriString(apiUrl).queryParam("ocid", ocid).build().toUriString();
+        RestClient restClient = RestClient.builder()
+                .baseUrl("https://open.api.nexon.com/maplestory/v1/character/link-skill")
+                .defaultHeader("x-nxopen-api-key", Key)
+                .build();
 
-        HttpHeaders headers = new HttpHeaders();
-        headers.set("x-nxopen-api-key", Key);
-
-        ResponseEntity<CharacterLinkSkillDTO> response = new RestTemplate().exchange(fullUrl, HttpMethod.GET, new HttpEntity<>(headers), CharacterLinkSkillDTO.class);
-        return response.getBody();
+        return restClient.get()
+                .uri(uriBuilder -> uriBuilder.queryParam("ocid", ocid).build())
+                .retrieve()
+                .onStatus(HttpStatusCode::is4xxClientError, (request, response) -> {
+                    throw new CustomException(ErrorCode.Forbidden, (response.getStatusCode() + response.getHeaders().toString()));
+                })
+                .body(CharacterLinkSkillDTO.class);
     }
 
     // ocid를 통해 캐릭터의 V매트릭스 정보를 가져오는 API
     public CharacterVMatrixDTO getCharacterVmatrix(@NotBlank String ocid) {
-        String apiUrl = "https://open.api.nexon.com/maplestory/v1/character/vmatrix";
-        String fullUrl = UriComponentsBuilder.fromUriString(apiUrl).queryParam("ocid", ocid).build().toUriString();
+        RestClient restClient = RestClient.builder()
+                .baseUrl("https://open.api.nexon.com/maplestory/v1/character/vmatrix")
+                .defaultHeader("x-nxopen-api-key", Key)
+                .build();
 
-        HttpHeaders headers = new HttpHeaders();
-        headers.set("x-nxopen-api-key", Key);
-
-        ResponseEntity<CharacterVMatrixDTO> response = new RestTemplate().exchange(fullUrl, HttpMethod.GET, new HttpEntity<>(headers), CharacterVMatrixDTO.class);
-        return response.getBody();
+        return restClient.get()
+                .uri(uriBuilder -> uriBuilder.queryParam("ocid", ocid).build())
+                .retrieve()
+                .onStatus(HttpStatusCode::is4xxClientError, (request, response) -> {
+                    throw new CustomException(ErrorCode.Forbidden, (response.getStatusCode() + response.getHeaders().toString()));
+                })
+                .body(CharacterVMatrixDTO.class);
     }
 
     // ocid를 통해 캐릭터의 HEXA 매트릭스 정보를 가져오는 API
     public CharacterHexaMatrixDTO getCharacterHexamatrix(@NotBlank String ocid) {
-        String apiUrl = "https://open.api.nexon.com/maplestory/v1/character/hexamatrix";
-        String fullUrl = UriComponentsBuilder.fromUriString(apiUrl).queryParam("ocid", ocid).build().toUriString();
+        RestClient restClient = RestClient.builder()
+                .baseUrl("https://open.api.nexon.com/maplestory/v1/character/hexamatrix")
+                .defaultHeader("x-nxopen-api-key", Key)
+                .build();
 
-        HttpHeaders headers = new HttpHeaders();
-        headers.set("x-nxopen-api-key", Key);
-
-        ResponseEntity<CharacterHexaMatrixDTO> response = new RestTemplate().exchange(fullUrl, HttpMethod.GET, new HttpEntity<>(headers), CharacterHexaMatrixDTO.class);
-        return response.getBody();
+        return restClient.get()
+                .uri(uriBuilder -> uriBuilder.queryParam("ocid", ocid).build())
+                .retrieve()
+                .onStatus(HttpStatusCode::is4xxClientError, (request, response) -> {
+                    throw new CustomException(ErrorCode.Forbidden, (response.getStatusCode() + response.getHeaders().toString()));
+                })
+                .body(CharacterHexaMatrixDTO.class);
     }
 
     // ocid를 통해 캐릭터의 HEXA 매트릭스 스탯 정보를 가져오는 API
     public CharacterHexaMatrixStatDTO getCharacterHexamatrixStat(@NotBlank String ocid) {
-        String apiUrl = "https://open.api.nexon.com/maplestory/v1/character/hexamatrix-stat";
-        String fullUrl = UriComponentsBuilder.fromUriString(apiUrl).queryParam("ocid", ocid).queryParam("hexa_matrix_id", 1).build().toUriString();
+        RestClient restClient = RestClient.builder()
+                .baseUrl("https://open.api.nexon.com/maplestory/v1/character/hexamatrix-stat")
+                .defaultHeader("x-nxopen-api-key", Key)
+                .build();
 
-        HttpHeaders headers = new HttpHeaders();
-        headers.set("x-nxopen-api-key", Key);
-
-        ResponseEntity<CharacterHexaMatrixStatDTO> response = new RestTemplate().exchange(fullUrl, HttpMethod.GET, new HttpEntity<>(headers), CharacterHexaMatrixStatDTO.class);
-        return response.getBody();
+        return restClient.get()
+                .uri(uriBuilder -> uriBuilder.queryParam("ocid", ocid).build())
+                .retrieve()
+                .onStatus(HttpStatusCode::is4xxClientError, (request, response) -> {
+                    throw new CustomException(ErrorCode.Forbidden, (response.getStatusCode() + response.getHeaders().toString()));
+                })
+                .body(CharacterHexaMatrixStatDTO.class);
     }
 
     // ocid를 통해 캐릭터의 유니온 정보를 가져오는 API
     public UnionDTO getUnion(@NotBlank String ocid) {
-        String apiUrl = "https://open.api.nexon.com/maplestory/v1/user/union";
-        String fullUrl = UriComponentsBuilder.fromUriString(apiUrl).queryParam("ocid", ocid).queryParam("union_id", 1).build().toUriString();
+        RestClient restClient = RestClient.builder()
+                .baseUrl("https://open.api.nexon.com/maplestory/v1/user/union")
+                .defaultHeader("x-nxopen-api-key", Key)
+                .build();
 
-        HttpHeaders headers = new HttpHeaders();
-        headers.set("x-nxopen-api-key", Key);
-
-        ResponseEntity<UnionDTO> response = new RestTemplate().exchange(fullUrl, HttpMethod.GET, new HttpEntity<>(headers), UnionDTO.class);
-        return response.getBody();
+        return restClient.get()
+                .uri(uriBuilder -> uriBuilder
+                        .queryParam("ocid", ocid)
+                        .queryParam("union_id", 1)
+                        .build())
+                .retrieve()
+                .onStatus(HttpStatusCode::is4xxClientError, (request, response) -> {
+                    throw new CustomException(ErrorCode.Forbidden, (response.getStatusCode() + response.getHeaders().toString()));
+                })
+                .body(UnionDTO.class);
     }
 
     // ocid를 통해 캐릭터의 유니온 레이더 정보를 가져오는 API
     public UnionRaiderDTO getUnionRaider(@NotBlank String ocid) {
-        String apiUrl = "https://open.api.nexon.com/maplestory/v1/user/union-raider";
-        String fullUrl = UriComponentsBuilder.fromUriString(apiUrl).queryParam("ocid", ocid).queryParam("union_id", 1).queryParam("raider_id", 1).build().toUriString();
+        RestClient restClient = RestClient.builder()
+                .baseUrl("https://open.api.nexon.com/maplestory/v1/user/union-raider")
+                .defaultHeader("x-nxopen-api-key", Key)
+                .build();
 
-        HttpHeaders headers = new HttpHeaders();
-        headers.set("x-nxopen-api-key", Key);
-
-        ResponseEntity<UnionRaiderDTO> response = new RestTemplate().exchange(fullUrl, HttpMethod.GET, new HttpEntity<>(headers), UnionRaiderDTO.class);
-        return response.getBody();
+        return restClient.get()
+                .uri(uriBuilder -> uriBuilder
+                        .queryParam("ocid", ocid)
+                        .queryParam("union_id", 1)
+                        .queryParam("raider_id", 1)
+                        .build())
+                .retrieve()
+                .onStatus(HttpStatusCode::is4xxClientError, (request, response) -> {
+                    throw new CustomException(ErrorCode.Forbidden, (response.getStatusCode() + response.getHeaders().toString()));
+                })
+                .body(UnionRaiderDTO.class);
     }
 
     // ocid를 통해 캐릭터의 유니온 아티팩트 정보를 가져오는 API
     public UnionArtifactDTO getUnionArtifact(@NotBlank String ocid) {
-        String apiUrl = "https://open.api.nexon.com/maplestory/v1/user/union-artifact";
-        String fullUrl = UriComponentsBuilder.fromUriString(apiUrl).queryParam("ocid", ocid).queryParam("union_id", 1).queryParam("artifact_id", 1).build().toUriString();
+        RestClient restClient = RestClient.builder()
+                .baseUrl("https://open.api.nexon.com/maplestory/v1/user/union-artifact")
+                .defaultHeader("x-nxopen-api-key", Key)
+                .build();
 
-        HttpHeaders headers = new HttpHeaders();
-        headers.set("x-nxopen-api-key", Key);
-
-        ResponseEntity<UnionArtifactDTO> response = new RestTemplate().exchange(fullUrl, HttpMethod.GET, new HttpEntity<>(headers), UnionArtifactDTO.class);
-        return response.getBody();
+        return restClient.get()
+                .uri(uriBuilder -> uriBuilder
+                        .queryParam("ocid", ocid)
+                        .queryParam("union_id", 1)
+                        .queryParam("artifact_id", 1)
+                        .build())
+                .retrieve()
+                .onStatus(HttpStatusCode::is4xxClientError, (request, response) -> {
+                    throw new CustomException(ErrorCode.Forbidden, (response.getStatusCode() + response.getHeaders().toString()));
+                })
+                .body(UnionArtifactDTO.class);
     }
 
     // 공지사항 리스트를 가져오는 API
     public NoticeListDTO getNoticeList() {
-        String apiUrl = "https://open.api.nexon.com/maplestory/v1/notice";
+        RestClient restClient = RestClient.builder()
+                .baseUrl("https://open.api.nexon.com/maplestory/v1/notice")
+                .defaultHeader("x-nxopen-api-key", Key)
+                .build();
 
-        HttpHeaders headers = new HttpHeaders();
-        headers.set("x-nxopen-api-key", Key);
-
-        ResponseEntity<NoticeListDTO> response = new RestTemplate().exchange(apiUrl, HttpMethod.GET, new HttpEntity<>(headers), NoticeListDTO.class);
-        return response.getBody();
+        return restClient.get()
+                .retrieve()
+                .onStatus(HttpStatusCode::is4xxClientError, (request, response) -> {
+                    throw new CustomException(ErrorCode.Forbidden, (response.getStatusCode() + response.getHeaders().toString()));
+                })
+                .body(NoticeListDTO.class);
     }
 
     // 공지사항 상세 정보를 가져오는 API
     public NoticeDetailDTO getNoticeDetail(int noticeId) {
-        String apiUrl = "https://open.api.nexon.com/maplestory/v1/notice/detail";
-        String fullUrl = UriComponentsBuilder.fromUriString(apiUrl).queryParam("notice_id", noticeId).build().toUriString();
+        RestClient restClient = RestClient.builder()
+                .baseUrl("https://open.api.nexon.com/maplestory/v1/notice/detail")
+                .defaultHeader("x-nxopen-api-key", Key)
+                .build();
 
-        HttpHeaders headers = new HttpHeaders();
-        headers.set("x-nxopen-api-key", Key);
-
-        ResponseEntity<NoticeDetailDTO> response = new RestTemplate().exchange(fullUrl, HttpMethod.GET, new HttpEntity<>(headers), NoticeDetailDTO.class);
-        return response.getBody();
+        return restClient.get()
+                .uri(uriBuilder -> uriBuilder.queryParam("notice_id", noticeId).build())
+                .retrieve()
+                .onStatus(HttpStatusCode::is4xxClientError, (request, response) -> {
+                    throw new CustomException(ErrorCode.Forbidden, (response.getStatusCode() + response.getHeaders().toString()));
+                })
+                .body(NoticeDetailDTO.class);
     }
 
     // 공지사항 업데이트 리스트를 가져오는 API
     public NoticeUpdateListDTO getNoticeUpdateList() {
-        String apiUrl = "https://open.api.nexon.com/maplestory/v1/notice-update";
+        RestClient restClient = RestClient.builder()
+                .baseUrl("https://open.api.nexon.com/maplestory/v1/notice-update")
+                .defaultHeader("x-nxopen-api-key", Key)
+                .build();
 
-        HttpHeaders headers = new HttpHeaders();
-        headers.set("x-nxopen-api-key", Key);
-
-        ResponseEntity<NoticeUpdateListDTO> response = new RestTemplate().exchange(apiUrl, HttpMethod.GET, new HttpEntity<>(headers), NoticeUpdateListDTO.class);
-        return response.getBody();
+        return restClient.get()
+                .retrieve()
+                .onStatus(HttpStatusCode::is4xxClientError, (request, response) -> {
+                    throw new CustomException(ErrorCode.Forbidden, (response.getStatusCode() + response.getHeaders().toString()));
+                })
+                .body(NoticeUpdateListDTO.class);
     }
 
     // 공지사항 업데이트 상세 정보를 가져오는 API
     public NoticeDetailDTO getNoticeUpdateDetail(long noticeId) {
-        String apiUrl = "https://open.api.nexon.com/maplestory/v1/notice-update/detail";
-        String fullUrl = UriComponentsBuilder.fromUriString(apiUrl).queryParam("notice_id", noticeId).build().toUriString();
+        RestClient restClient = RestClient.builder()
+                .baseUrl("https://open.api.nexon.com/maplestory/v1/notice-update/detail")
+                .defaultHeader("x-nxopen-api-key", Key)
+                .build();
 
-        HttpHeaders headers = new HttpHeaders();
-        headers.set("x-nxopen-api-key", Key);
-        ResponseEntity<NoticeDetailDTO> response = new RestTemplate().exchange(fullUrl, HttpMethod.GET, new HttpEntity<>(headers), NoticeDetailDTO.class);
-        return response.getBody();
+        return restClient.get()
+                .uri(uriBuilder -> uriBuilder.queryParam("notice_id", noticeId).build())
+                .retrieve()
+                .onStatus(HttpStatusCode::is4xxClientError, (request, response) -> {
+                    throw new CustomException(ErrorCode.Forbidden, (response.getStatusCode() + response.getHeaders().toString()));
+                })
+                .body(NoticeDetailDTO.class);
     }
 
     // 진행 중 이벤트 리스트를 가져오는 API
     public EventNoticeListDTO getNoticeEventList() {
-        String apiUrl = "https://open.api.nexon.com/maplestory/v1/notice-event";
+        RestClient restClient = RestClient.builder()
+                .baseUrl("https://open.api.nexon.com/maplestory/v1/notice-event")
+                .defaultHeader("x-nxopen-api-key", Key)
+                .build();
 
-        HttpHeaders headers = new HttpHeaders();
-        headers.set("x-nxopen-api-key", Key);
-        ResponseEntity<EventNoticeListDTO> response = new RestTemplate().exchange(apiUrl, HttpMethod.GET, new HttpEntity<>(headers), EventNoticeListDTO.class);
-        return response.getBody();
+        return restClient.get()
+                .retrieve()
+                .onStatus(HttpStatusCode::is4xxClientError, (request, response) -> {
+                    throw new CustomException(ErrorCode.Forbidden, (response.getStatusCode() + response.getHeaders().toString()));
+                })
+                .body(EventNoticeListDTO.class);
     }
 
     // 진행 중 이벤트 상세 정보를 가져오는 API
     public EventNoticeDetailDTO getNoticeEventDetail(long noticeId) {
-        String apiUrl = "https://open.api.nexon.com/maplestory/v1/notice-event/detail";
-        String fullUrl = UriComponentsBuilder.fromUriString(apiUrl).queryParam("notice_id", noticeId).build().toUriString();
+        RestClient restClient = RestClient.builder()
+                .baseUrl("https://open.api.nexon.com/maplestory/v1/notice-event/detail")
+                .defaultHeader("x-nxopen-api-key", Key)
+                .build();
 
-        HttpHeaders headers = new HttpHeaders();
-        headers.set("x-nxopen-api-key", Key);
-
-        ResponseEntity<EventNoticeDetailDTO> response = new RestTemplate().exchange(fullUrl, HttpMethod.GET, new HttpEntity<>(headers), EventNoticeDetailDTO.class);
-        return response.getBody();
+        return restClient.get()
+                .uri(uriBuilder -> uriBuilder.queryParam("notice_id", noticeId).build())
+                .retrieve()
+                .onStatus(HttpStatusCode::is4xxClientError, (request, response) -> {
+                    throw new CustomException(ErrorCode.Forbidden, (response.getStatusCode() + response.getHeaders().toString()));
+                })
+                .body(EventNoticeDetailDTO.class);
     }
 
     // 캐릭터 이름을 통해 캐릭터의 기본 정보를 가져오는 API
@@ -500,8 +598,11 @@ public class NEXONUtils {
 //        characterInfo.setUnionRaider(unionRaider.join());
 //        characterInfo.setUnionArtifact(unionArtifact.join());
 
-
-        return characterInfo;
+        if(characterInfo.getBasic() == null) {
+            throw new CustomException(ErrorCode.NotFound, "캐릭터 정보를 찾을 수 없습니다.");
+        }{
+            return characterInfo;
+        }
     }
 
 
