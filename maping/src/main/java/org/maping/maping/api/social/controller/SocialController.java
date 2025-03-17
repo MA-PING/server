@@ -9,6 +9,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.maping.maping.api.auth.dto.request.PasswordRequest;
 import org.maping.maping.api.social.dto.request.AddFavoriteRequest;
+import org.maping.maping.api.social.dto.request.DeleteFavoriteRequest;
 import org.maping.maping.api.social.dto.response.FavoriteCharacterResponse;
 import org.maping.maping.api.social.service.SocialService;
 import org.maping.maping.common.enums.expection.ErrorCode;
@@ -41,7 +42,7 @@ public class SocialController {
 
     @Operation(summary = "즐겨찾기 추가", description = "사용자의 즐겨찾기를 추가하는 API")
     @ResponseStatus(HttpStatus.OK)
-    @PostMapping("/bookmark")
+    @PostMapping("/favorite/post")
     public ResponseEntity<BaseResponse> addFavorite(HttpServletRequest request,@Valid @RequestBody AddFavoriteRequest requestDto) {
         Long userId = Long.parseLong(jwtUtill.getUserId(request));
         socialService.addFavorite(userId, requestDto);
@@ -50,10 +51,19 @@ public class SocialController {
 
     @Operation(summary = "즐겨찾기 보기", description = "사용자의 즐겨찾기를 보는 API")
     @ResponseStatus(HttpStatus.OK)
-    @GetMapping("/watch/bookmark")
+    @GetMapping("/favorite")
     public BaseResponse<List<FavoriteCharacterResponse>> getUserFavorites(HttpServletRequest request) {
         Long userId = Long.parseLong(jwtUtill.getUserId(request));
         List<FavoriteCharacterResponse> response = socialService.getFavorites(userId);
         return new BaseResponse<>(HttpStatus.OK.value(), "즐겨찾기 캐릭터 조회 성공", response);
+    }
+
+    @Operation(summary = "즐겨찾기 삭제", description = "사용자의 즐겨찾기를 삭제하는 API")
+    @ResponseStatus(HttpStatus.OK)
+    @DeleteMapping("/favorite/withdraw")
+    public ResponseEntity<BaseResponse> deleteFavorite(HttpServletRequest request, @Valid @RequestBody DeleteFavoriteRequest requestDto) {
+        Long userId = Long.parseLong(jwtUtill.getUserId(request));
+        socialService.deleteFavorite(userId, requestDto);
+        return ResponseEntity.ok(new BaseResponse<>(200, "즐겨찾기 삭제 완료", null));
     }
 }
