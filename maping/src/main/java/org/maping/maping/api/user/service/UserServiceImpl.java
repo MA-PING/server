@@ -7,6 +7,7 @@ import org.maping.maping.common.utills.ULID.ULIDUtill;
 import org.maping.maping.common.utills.users.oauth.google.dto.GoogleUserInfoResponse;
 import org.maping.maping.common.utills.users.oauth.naver.NaverUtil;
 import org.maping.maping.external.oauth.naver.dto.response.NaverUserInfoResponse;
+import org.maping.maping.model.user.UserApiJpaEntity;
 import org.maping.maping.repository.user.UserRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -78,8 +79,6 @@ public class UserServiceImpl implements UserService {
         user.setUserName(newNickname);
         userRepository.save(user);
     }
-
-
 
         @Transactional
         @Override

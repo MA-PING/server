@@ -136,7 +136,5 @@ public class AuthController {
             throw new CustomException(ErrorCode.BadRequest, "잘못된 요청입니다. 입력값을 확인해주세요.", HttpStatus.BAD_REQUEST);
         }
     }
-
-
 }
 

@@ -77,4 +77,5 @@ public class UserController {
             return new BaseResponse<>(HttpStatus.INTERNAL_SERVER_ERROR.value(), "비밀번호 변경 이메일 발송 실패", "비밀번호 변경 이메일 발송 실패", false);
         }
     }
+
 }
