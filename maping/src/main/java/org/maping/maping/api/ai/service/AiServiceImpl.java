@@ -1,5 +1,6 @@
 package org.maping.maping.api.ai.service;
 
+import autovalue.shaded.org.checkerframework.checker.nullness.qual.Nullable;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.http.HttpException;
 import org.maping.maping.api.ai.dto.response.*;
@@ -14,7 +15,6 @@ import org.maping.maping.external.nexon.dto.character.skill.CharacterLinkSkillDT
 import org.maping.maping.external.nexon.dto.character.skill.CharacterSkillDTO;
 import org.maping.maping.external.nexon.dto.character.stat.CharacterStatDto;
 import org.maping.maping.external.nexon.dto.character.symbol.CharacterSymbolEquipmentDTO;
-import org.maping.maping.external.nexon.dto.notice.NoticeUpdateListDTO;
 import org.maping.maping.external.nexon.dto.union.UnionArtifactDTO;
 import org.maping.maping.external.nexon.dto.union.UnionDTO;
 import org.maping.maping.external.nexon.dto.union.UnionRaiderDTO;
@@ -25,15 +25,15 @@ import org.maping.maping.repository.ai.NoticeRepository;
 import org.maping.maping.repository.user.UserRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import reactor.core.publisher.Flux;
 
-import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.UUID;
 import java.io.IOException;
 import java.time.LocalDateTime;
-import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicReference;
 
 @Slf4j
 @Service
@@ -165,40 +165,26 @@ public class AiServiceImpl implements AiService{
 
     @Override
     public AiChatResponse getChat(Long userId, String chatId, String characterName, String type, String ocid, String text) throws HttpException, IOException {
-        OffsetDateTime koreaTime = OffsetDateTime.now(ZoneId.of("Asia/Seoul"));
         UserInfoJpaEntity userInfoJpaEntity = userRepository.findById(userId).orElse(null);
         AiChatResponse aiChatResponse = new AiChatResponse();
         AiHistoryJpaEntity aiHistoryJpaEntity = new AiHistoryJpaEntity();
         List<AiChatHistoryDTO> HistoryListDTO = new ArrayList<>();
-        AiChatHistoryDTO aiChatHistoryDTO = new AiChatHistoryDTO();
         String content;
-        if(chatId == null){
+        if(chatId == null & ocid == null & type == null) {
             content = geminiUtils.getGeminiGoogleResponse(text);
             String topic = geminiUtils.getGeminiResponse(text + "\n 이 내용에 대한 간단한 요약으로 30자 이내로 알려줘.");
 
             //DTO에 값 넣기
-            aiChatHistoryDTO.setOcid(ocid);
-            aiChatHistoryDTO.setCharacterName(characterName);
-            aiChatHistoryDTO.setType(type);
-            aiChatHistoryDTO.setQuestion(text);
-            aiChatHistoryDTO.setAnswer(content);
+            AiChatHistoryDTO aiChatHistoryDTO = historyDto(ocid, characterName, type, text, content);
 
             //JPA에 값 넣기
-            aiHistoryJpaEntity.setChatId(UUID.randomUUID().toString());
-            log.info("chatId: {}", aiHistoryJpaEntity.getChatId());
-            aiHistoryJpaEntity.setUser(userInfoJpaEntity);
-            aiHistoryJpaEntity.setTopic(topic);
             HistoryListDTO.add(aiChatHistoryDTO);
-            aiHistoryJpaEntity.setContent(setAiHistoryConvert.getHistoryJson(HistoryListDTO));
-            aiHistoryJpaEntity.setUpdatedAt(koreaTime);
-            AiHistoryJpaEntity savedEntity = aiHistoryRepository.save(aiHistoryJpaEntity);
+            String savedEntity = saveAiHistory(UUID.randomUUID().toString(), userInfoJpaEntity, topic, setAiHistoryConvert.getHistoryJson(HistoryListDTO));
+            log.info("chatId: {}", aiHistoryJpaEntity.getChatId());
 
             //Response에 값 넣기
-            aiChatResponse.setOcid(ocid);
-            aiChatResponse.setText(content);
-            aiChatResponse.setTopic(topic);
-            aiChatResponse.setChatId(savedEntity.getChatId());
-        }else{
+            aiChatResponse = aiChatResponseDto(savedEntity, ocid, topic, content);
+        }else if(chatId != null & ocid == null & type == null) {
             AiHistoryJpaEntity aiHistoryChatId = aiHistoryRepository.findByChatId(Objects.requireNonNull(chatId));
 
             if(aiHistoryChatId == null){
@@ -206,48 +192,174 @@ public class AiServiceImpl implements AiService{
             }
 
             HistoryListDTO = setAiHistoryConvert.setAiHistoryConvert(Objects.requireNonNull(aiHistoryChatId).getContent());
-            log.info("historyListDTO: {}", HistoryListDTO);
             content = geminiUtils.getGeminiChatResponse(HistoryListDTO, text);
 
             //DTO에 값 넣기
-            aiChatHistoryDTO.setOcid(ocid);
-            aiChatHistoryDTO.setCharacterName(characterName);
-            aiChatHistoryDTO.setType(type);
-            aiChatHistoryDTO.setQuestion(text);
-            aiChatHistoryDTO.setAnswer(content);
+            AiChatHistoryDTO aiChatHistoryDTO = historyDto(ocid, characterName, type, text, content);
 
             //JPA에 값 넣기
             HistoryListDTO.add(aiChatHistoryDTO);
-            log.info(setAiHistoryConvert.getHistoryJson(HistoryListDTO));
-            aiHistoryJpaEntity.setChatId(aiHistoryChatId.getChatId());
-            aiHistoryJpaEntity.setUser(aiHistoryChatId.getUser());
-            aiHistoryJpaEntity.setTopic(aiHistoryChatId.getTopic());
-            aiHistoryJpaEntity.setContent(setAiHistoryConvert.getHistoryJson(HistoryListDTO));
-            aiHistoryJpaEntity.setUpdatedAt(koreaTime);
-            aiHistoryRepository.save(aiHistoryJpaEntity);
+            aiHistoryChatId.setUpdatedAt(LocalDateTime.now());
+            aiHistoryChatId.setContent(setAiHistoryConvert.getHistoryJson(HistoryListDTO));
+            aiHistoryRepository.save(aiHistoryChatId);
 
             //Response에 값 넣기
-            aiChatResponse.setOcid(ocid);
-            aiChatResponse.setText(content);
-            aiChatResponse.setTopic(Objects.requireNonNull(aiHistoryChatId).getTopic());
-            aiChatResponse.setChatId(chatId);
+            aiChatResponse = aiChatResponseDto(chatId, ocid, Objects.requireNonNull(aiHistoryChatId).getTopic(), content);
+        }else if(chatId == null & ocid != null & type != null) {
+            if(!typeCheck(type)){
+                throw new CustomException(ErrorCode.BadRequest, "잘못된 타입 요청입니다.");
+            }
+            String typeText = getTypeText(ocid, type, text);
+            String topic = geminiUtils.getGeminiResponse(text + "\n 이 내용에 대한 간단한 요약으로 30자 이내로 알려줘.");
+            content = geminiUtils.getGeminiGoogleResponse(typeText);
+
+            //JPA에 값 넣기
+            HistoryListDTO.add(historyDto(ocid, characterName, type, text, content));
+            String savedEntity = saveAiHistory(UUID.randomUUID().toString(), userInfoJpaEntity, topic, setAiHistoryConvert.getHistoryJson(HistoryListDTO));
+            log.info("chatId: {}, type: {}", aiHistoryJpaEntity.getChatId(), type);
+
+            //Response에 값 넣기
+            aiChatResponse = aiChatResponseDto(savedEntity, ocid, topic, content);
+        }else if(chatId != null & ocid != null & type != null) {
+            if(!typeCheck(type)){
+                throw new CustomException(ErrorCode.BadRequest, "잘못된 타입 요청입니다.");
+            }
+            AiHistoryJpaEntity aiHistoryChatId = aiHistoryRepository.findByChatId(Objects.requireNonNull(chatId));
+
+            if(aiHistoryChatId == null){
+                throw new CustomException(ErrorCode.NotFound, "챗봇 대화가 존재하지 않습니다.");
+            }
+            String typeText = getTypeText(ocid, type, text);
+            HistoryListDTO = setAiHistoryConvert.setAiHistoryConvert(Objects.requireNonNull(aiHistoryChatId).getContent());
+            content = geminiUtils.getGeminiChatResponse(HistoryListDTO, typeText);
+
+            //DTO에 값 넣기
+            AiChatHistoryDTO aiChatHistoryDTO = historyDto(ocid, characterName, type, text, content);
+
+            //JPA에 값 넣기
+            HistoryListDTO.add(aiChatHistoryDTO);
+            aiHistoryChatId.setUpdatedAt(LocalDateTime.now());
+            aiHistoryChatId.setContent(setAiHistoryConvert.getHistoryJson(HistoryListDTO));
+            aiHistoryRepository.save(aiHistoryChatId);
+
+            //Response에 값 넣기
+            aiChatResponse = aiChatResponseDto(chatId, ocid, Objects.requireNonNull(aiHistoryChatId).getTopic(), content);
         }
 
         return aiChatResponse;
     }
 
+    public AiChatHistoryDTO historyDto(@Nullable String ocid, @Nullable String characterName, @Nullable String type, String text, String content){
+        return AiChatHistoryDTO.builder()
+                .ocid(ocid)
+                .characterName(characterName)
+                .type(type)
+                .answer(text)
+                .question(content)
+                .build();
+    }
+
+    public AiChatResponse aiChatResponseDto(String chatId, @Nullable String ocid, String topic, String content){
+        return AiChatResponse.builder()
+                .chatId(chatId)
+                .ocid(ocid)
+                .topic(topic)
+                .text(content)
+                .build();
+    }
+
+    public String saveAiHistory(String chatId, UserInfoJpaEntity userInfoJpaEntity, String topic, String content) {
+        AiHistoryJpaEntity aiHistoryJpaEntity = new AiHistoryJpaEntity();
+        aiHistoryJpaEntity.setChatId(chatId);
+        aiHistoryJpaEntity.setUser(userInfoJpaEntity);
+        aiHistoryJpaEntity.setTopic(topic);
+        aiHistoryJpaEntity.setContent(content);
+        aiHistoryJpaEntity.setUpdatedAt(LocalDateTime.now());
+        AiHistoryJpaEntity savedEntity = aiHistoryRepository.save(aiHistoryJpaEntity);
+        return savedEntity.getChatId();
+    }
+
+    public boolean typeCheck(String type) {
+        return type.equals("stat") || type.equals("item") || type.equals("union") || type.equals("artifact") || type.equals("skill") || type.equals("symbol");
+    }
+
+    public String getTypeText(String ocid,String type, String text) {
+        String typeText = "";
+        CharacterBasicDTO basic = nexonUtils.getCharacterBasic(ocid);
+        String basicString = nexonUtils.basicString(basic);
+        switch (type) {
+            case "stat" -> {
+                CharacterStatDto stat = nexonUtils.getCharacterStat(ocid);
+                String statString = nexonUtils.statString(stat);
+
+                typeText = "기본정보 : {" + basicString + "}, 스탯 : {" + statString + "}\n" + text;
+                return typeText;
+            }
+            case "item" -> {
+                CharacterItemEquipmentDTO itemEquipment = nexonUtils.getCharacterItemEquip(ocid);
+                String itemString = nexonUtils.itemString(itemEquipment);
+                typeText = "기본정보 : {" + basicString + "}, 아이템 : {" + itemString + "}\n" + text;
+
+                return typeText;
+            }
+            case "union" -> {
+                UnionDTO union = nexonUtils.getUnion(ocid);
+                UnionRaiderDTO unionRaider = nexonUtils.getUnionRaider(ocid);
+                String unionString = nexonUtils.unionString(union, unionRaider);
+
+                typeText = "기본정보 : {" + basicString + "}, 유니온 : {" + unionString + "}\n" + text;
+
+                return typeText;
+            }
+            case "artifact" -> {
+                UnionArtifactDTO unionArtifact = nexonUtils.getUnionArtifact(ocid);
+                String artifactString = nexonUtils.artifactString(unionArtifact);
+
+                typeText = "기본정보 : {" + basicString + "}, 유니온 아티팩트 : {" + artifactString + "}\n" + text;
+                return typeText;
+            }
+            case "skill" -> {
+                CharacterSkillDTO skill5 = nexonUtils.getCharacterSkill5(ocid, 5);
+                CharacterSkillDTO skill6 = nexonUtils.getCharacterSkill5(ocid, 6);
+                CharacterLinkSkillDTO linkSkill = nexonUtils.getCharacterLinkSkill(ocid);
+                String skillString = nexonUtils.skillString(skill5, skill6, linkSkill);
+
+                typeText = "기본정보 : {" + basicString + "}, 스킬 : {" + skillString + "}\n" + text;
+                return typeText;
+            }
+            case "symbol" -> {
+                CharacterSymbolEquipmentDTO symbol = nexonUtils.getCharacterSymbolEquipment(ocid);
+                String symbolString = nexonUtils.symbolString(symbol);
+                typeText = "기본정보 : {" + basicString + "}, 심볼 : {" + symbolString + "}\n" + text;
+                return typeText;
+            }
+            default -> {
+                throw new CustomException(ErrorCode.BadRequest, "잘못된 요청입니다.");
+            }
+        }
+    }
+
     @Override
-    public String getRecommend(String ocid) throws HttpException, IOException {
+    public String getCharacterRecommend(String ocid) throws HttpException, IOException {
         CharacterBasicDTO basic = nexonUtils.getCharacterBasic(ocid);
         String basicString = nexonUtils.basicString(basic);
         String text = "기본정보 : {" + basicString + "}\n" +
-                "메이플 캐릭터의 기본 정보야 사용자에게 AI 에게 물어볼만한 추천 질문 5개를 알려줘.";
+                "메이플 캐릭터의 기본 정보야 사용자가 AI 에게 물어볼만한 추천 질문 5개를 알려줘.";
+        return geminiUtils.getGeminiGoogleResponse(text);
+    }
+
+    @Override
+    public String getUserRecommend(String ocid) throws HttpException, IOException {
+        CharacterBasicDTO basic = nexonUtils.getCharacterBasic(ocid);
+        String basicString = nexonUtils.basicString(basic);
+        String text = "메이플 스토리 유저가게 AI 에게 물어볼만한 추천 질문 5개를 알려줘.";
         return geminiUtils.getGeminiGoogleResponse(text);
     }
 
     @Override
     public List<AiHistoryResponse> getHistory(Long userId) {
-        return aiHistoryRepository.findByUserId(userId).stream().map(history ->
+        UserInfoJpaEntity userInfoJpaEntity = userRepository.findById(userId).orElse(null);
+        return aiHistoryRepository.findByUserId(userInfoJpaEntity).stream().map(history ->
             AiHistoryResponse.builder()
                     .chatId(history.getChatId())
                     .topic(history.getTopic())
@@ -283,5 +395,10 @@ public class AiServiceImpl implements AiService{
             return new BaseResponse<>(HttpStatus.OK.value(), "챗봇 대화 기록을 삭제하였습니다.", "챗봇 대화 기록을 삭제하였습니다.");
         }
         return new BaseResponse<>(HttpStatus.OK.value(), "챗봇 대화 기록을 삭제할 수 없습니다.", "챗봇 대화 기록을 삭제할 수 없습니다.");
+    }
+
+    @Override
+    public String getGuestChat(String chatId, String characterName, String type, String ocid, String text) throws HttpException, IOException {
+        return geminiUtils.getGeminiGoogleResponse(text);
     }
 }

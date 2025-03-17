@@ -26,11 +26,15 @@ public interface AiService {
 
     AiChatResponse getChat(Long userId, String chatId, String characterName, String type, String ocid, String text) throws HttpException, IOException;
 
-    String getRecommend(String ocid) throws HttpException, IOException;
+    String getCharacterRecommend(String ocid) throws HttpException, IOException;
+
+    String getUserRecommend(String ocid) throws HttpException, IOException;
 
     List<AiHistoryResponse> getHistory(Long userId);
 
     BaseResponse<AiChatHistoryDetailResponse> getHistory(Long userId, String chatId);
 
     BaseResponse<String> deleteHistory(Long userId, String chatId);
+
+    String getGuestChat(String chatId, String characterName, String type, String ocid, String text) throws HttpException, IOException;
 }

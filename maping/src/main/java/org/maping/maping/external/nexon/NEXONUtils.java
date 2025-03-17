@@ -3,6 +3,7 @@ package org.maping.maping.external.nexon;
 import jakarta.validation.constraints.NotBlank;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
+import org.maping.maping.api.character.dto.response.FavoriteResponse;
 import org.maping.maping.common.enums.expection.ErrorCode;
 import org.maping.maping.external.nexon.dto.character.CharacterBasicDTO;
 import org.maping.maping.external.nexon.dto.character.CharacterDTO;
@@ -696,5 +697,11 @@ public class NEXONUtils {
         return result.toString();
     }
 
+
+//    public FavoriteResponse favoriteResponse(Long userId){
+//
+//        return FavoriteResponse.builder()
+//                .
+//    }
 
 }

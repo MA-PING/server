@@ -2,6 +2,7 @@ package org.maping.maping.api.ai.dto.response;
 
 import lombok.*;
 
+import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.util.List;
 @Builder
@@ -12,6 +13,6 @@ import java.util.List;
 public class AiChatHistoryDetailResponse {
     private String chatId;
     private String topic;
-    private OffsetDateTime dateTime;
+    private LocalDateTime dateTime;
     private List<AiChatHistoryDTO> history;
 }

@@ -35,7 +35,7 @@ public class NoticeJpaEntity {
 
     @NotNull
     @Column(name = "notice_date", nullable = false)
-    private OffsetDateTime noticeDate;
+    private LocalDateTime noticeDate;
 
 
     @Size(max = 255)

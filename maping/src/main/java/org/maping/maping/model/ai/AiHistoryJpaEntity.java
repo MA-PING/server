@@ -6,6 +6,7 @@ import lombok.*;
 import org.maping.maping.model.user.UserInfoJpaEntity;
 
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 
 @Entity
@@ -35,6 +36,6 @@ public class AiHistoryJpaEntity {
 
     @NotNull
     @Column(name = "updated_at", nullable = false)
-    private OffsetDateTime updatedAt;
+    private LocalDateTime updatedAt;
 
 }

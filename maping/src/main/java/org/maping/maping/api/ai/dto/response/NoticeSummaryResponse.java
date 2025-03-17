@@ -15,7 +15,7 @@ import java.time.OffsetDateTime;
 public class NoticeSummaryResponse {
     private String title;
     private String url;
-    private OffsetDateTime date;
+    private LocalDateTime date;
     private String summary;
     private String version;
 }

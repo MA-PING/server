@@ -1,11 +1,9 @@
 package org.maping.maping.api.ai.dto.response;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import lombok.ToString;
+import lombok.*;
 
+@Builder
 @AllArgsConstructor
 @NoArgsConstructor
 @Data
