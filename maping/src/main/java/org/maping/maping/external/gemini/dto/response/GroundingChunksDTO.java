@@ -14,5 +14,7 @@ import java.util.List;
 @ToString
 public class GroundingChunksDTO {
     @JsonProperty("web")
-    private List<WebDTO> web;
+    private WebDTO web;
+
+
 }

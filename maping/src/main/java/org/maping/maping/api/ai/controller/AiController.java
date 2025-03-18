@@ -27,6 +27,7 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import reactor.core.publisher.Flux;
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 
 @lombok.extern.slf4j.Slf4j
 @Slf4j
@@ -129,16 +130,16 @@ public class AiController {
         return new BaseResponse<>(HttpStatus.OK.value(), "챗봇 대화 중", aiServiceImpl.getChat(userId, requestDTO.getChatId(),requestDTO.getCharacterName(),requestDTO.getType(), requestDTO.getOcid(), requestDTO.getText()));
     }
 
-//    @Operation(summary = "챗봇 대화", description = "GEMINI 챗봇 대화하는 API")
-//    @ResponseStatus(HttpStatus.OK)
-//    @PostMapping(value = "chat/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-//    public Flux<String> getStreamChat(HttpServletRequest request,
-//                                                  @RequestBody AiChatRequest requestDTO) throws HttpException, IOException {
-//        Long userId = Long.valueOf(jwtUtil.getUserId(request));
-//        log.info(String.valueOf(requestDTO.getChatId()), requestDTO.getOcid(), requestDTO.getText());
-//
-//        return aiServiceImpl.getStreamChat(userId, requestDTO.getChatId(),requestDTO.getCharacterName(),requestDTO.getType(), requestDTO.getOcid(), requestDTO.getText());
-//    }
+    @Operation(summary = "챗봇 대화", description = "GEMINI 챗봇 대화하는 API")
+    @ResponseStatus(HttpStatus.OK)
+    @PostMapping(value = "chat/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public Flux<Map<String, Object>> getStreamChat(HttpServletRequest request,
+                                                   @RequestBody AiChatRequest requestDTO) throws HttpException, IOException {
+        Long userId = Long.valueOf(jwtUtil.getUserId(request));
+        log.info(String.valueOf(requestDTO.getChatId()), requestDTO.getOcid(), requestDTO.getText());
+
+        return aiServiceImpl.getStreamChat(userId, requestDTO.getChatId(),requestDTO.getCharacterName(),requestDTO.getType(), requestDTO.getOcid(), requestDTO.getText());
+    }
 
     @Operation(summary = "챗봇 기록", description = "GEMINI 챗봇 기록을 가져오는 API")
     @ResponseStatus(HttpStatus.OK)

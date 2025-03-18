@@ -26,13 +26,12 @@ import org.maping.maping.repository.user.UserRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.FluxSink;
+import reactor.core.publisher.SynchronousSink;
 
-import java.util.ArrayList;
-import java.util.UUID;
+import java.util.*;
 import java.io.IOException;
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Objects;
 import java.util.concurrent.atomic.AtomicReference;
 
 @Slf4j
@@ -163,92 +162,6 @@ public class AiServiceImpl implements AiService{
         }).toList();
     }
 
-    @Override
-    public AiChatResponse getChat(Long userId, String chatId, String characterName, String type, String ocid, String text) throws HttpException, IOException {
-        UserInfoJpaEntity userInfoJpaEntity = userRepository.findById(userId).orElse(null);
-        AiChatResponse aiChatResponse = new AiChatResponse();
-        AiHistoryJpaEntity aiHistoryJpaEntity = new AiHistoryJpaEntity();
-        List<AiChatHistoryDTO> HistoryListDTO = new ArrayList<>();
-        String content;
-        if(chatId == null & ocid == null & type == null) {
-            content = geminiUtils.getGeminiGoogleResponse(text);
-            String topic = geminiUtils.getGeminiResponse(text + "\n 이 내용에 대한 간단한 요약으로 30자 이내로 알려줘.");
-
-            //DTO에 값 넣기
-            AiChatHistoryDTO aiChatHistoryDTO = historyDto(ocid, characterName, type, text, content);
-
-            //JPA에 값 넣기
-            HistoryListDTO.add(aiChatHistoryDTO);
-            String savedEntity = saveAiHistory(UUID.randomUUID().toString(), userInfoJpaEntity, topic, setAiHistoryConvert.getHistoryJson(HistoryListDTO));
-            log.info("chatId: {}", aiHistoryJpaEntity.getChatId());
-
-            //Response에 값 넣기
-            aiChatResponse = aiChatResponseDto(savedEntity, ocid, topic, content);
-        }else if(chatId != null & ocid == null & type == null) {
-            AiHistoryJpaEntity aiHistoryChatId = aiHistoryRepository.findByChatId(Objects.requireNonNull(chatId));
-
-            if(aiHistoryChatId == null){
-                throw new CustomException(ErrorCode.NotFound, "챗봇 대화가 존재하지 않습니다.");
-            }
-
-            HistoryListDTO = setAiHistoryConvert.setAiHistoryConvert(Objects.requireNonNull(aiHistoryChatId).getContent());
-            content = geminiUtils.getGeminiChatResponse(HistoryListDTO, text);
-
-            //DTO에 값 넣기
-            AiChatHistoryDTO aiChatHistoryDTO = historyDto(ocid, characterName, type, text, content);
-
-            //JPA에 값 넣기
-            HistoryListDTO.add(aiChatHistoryDTO);
-            aiHistoryChatId.setUpdatedAt(LocalDateTime.now());
-            aiHistoryChatId.setContent(setAiHistoryConvert.getHistoryJson(HistoryListDTO));
-            aiHistoryRepository.save(aiHistoryChatId);
-
-            //Response에 값 넣기
-            aiChatResponse = aiChatResponseDto(chatId, ocid, Objects.requireNonNull(aiHistoryChatId).getTopic(), content);
-        }else if(chatId == null & ocid != null & type != null) {
-            if(!typeCheck(type)){
-                throw new CustomException(ErrorCode.BadRequest, "잘못된 타입 요청입니다.");
-            }
-            String typeText = getTypeText(ocid, type, text);
-            String topic = geminiUtils.getGeminiResponse(text + "\n 이 내용에 대한 간단한 요약으로 30자 이내로 알려줘.");
-            content = geminiUtils.getGeminiGoogleResponse(typeText);
-
-            //JPA에 값 넣기
-            HistoryListDTO.add(historyDto(ocid, characterName, type, text, content));
-            String savedEntity = saveAiHistory(UUID.randomUUID().toString(), userInfoJpaEntity, topic, setAiHistoryConvert.getHistoryJson(HistoryListDTO));
-            log.info("chatId: {}, type: {}", aiHistoryJpaEntity.getChatId(), type);
-
-            //Response에 값 넣기
-            aiChatResponse = aiChatResponseDto(savedEntity, ocid, topic, content);
-        }else if(chatId != null & ocid != null & type != null) {
-            if(!typeCheck(type)){
-                throw new CustomException(ErrorCode.BadRequest, "잘못된 타입 요청입니다.");
-            }
-            AiHistoryJpaEntity aiHistoryChatId = aiHistoryRepository.findByChatId(Objects.requireNonNull(chatId));
-
-            if(aiHistoryChatId == null){
-                throw new CustomException(ErrorCode.NotFound, "챗봇 대화가 존재하지 않습니다.");
-            }
-            String typeText = getTypeText(ocid, type, text);
-            HistoryListDTO = setAiHistoryConvert.setAiHistoryConvert(Objects.requireNonNull(aiHistoryChatId).getContent());
-            content = geminiUtils.getGeminiChatResponse(HistoryListDTO, typeText);
-
-            //DTO에 값 넣기
-            AiChatHistoryDTO aiChatHistoryDTO = historyDto(ocid, characterName, type, text, content);
-
-            //JPA에 값 넣기
-            HistoryListDTO.add(aiChatHistoryDTO);
-            aiHistoryChatId.setUpdatedAt(LocalDateTime.now());
-            aiHistoryChatId.setContent(setAiHistoryConvert.getHistoryJson(HistoryListDTO));
-            aiHistoryRepository.save(aiHistoryChatId);
-
-            //Response에 값 넣기
-            aiChatResponse = aiChatResponseDto(chatId, ocid, Objects.requireNonNull(aiHistoryChatId).getTopic(), content);
-        }
-
-        return aiChatResponse;
-    }
-
     public AiChatHistoryDTO historyDto(@Nullable String ocid, @Nullable String characterName, @Nullable String type, String text, String content){
         return AiChatHistoryDTO.builder()
                 .ocid(ocid)
@@ -284,7 +197,7 @@ public class AiServiceImpl implements AiService{
     }
 
     public String getTypeText(String ocid,String type, String text) {
-        String typeText = "";
+        String typeText;
         CharacterBasicDTO basic = nexonUtils.getCharacterBasic(ocid);
         String basicString = nexonUtils.basicString(basic);
         switch (type) {
@@ -350,9 +263,7 @@ public class AiServiceImpl implements AiService{
 
     @Override
     public String getUserRecommend(String ocid) throws HttpException, IOException {
-        CharacterBasicDTO basic = nexonUtils.getCharacterBasic(ocid);
-        String basicString = nexonUtils.basicString(basic);
-        String text = "메이플 스토리 유저가게 AI 에게 물어볼만한 추천 질문 5개를 알려줘.";
+        String text = "메이플 스토리 유저가 AI 에게 물어볼만한 추천 질문 5개를 알려줘.";
         return geminiUtils.getGeminiGoogleResponse(text);
     }
 
@@ -400,5 +311,207 @@ public class AiServiceImpl implements AiService{
     @Override
     public String getGuestChat(String chatId, String characterName, String type, String ocid, String text) throws HttpException, IOException {
         return geminiUtils.getGeminiGoogleResponse(text);
+    }
+
+    @Override
+    public AiChatResponse getChat(Long userId, String chatId, String characterName, String type, String ocid, String text) throws HttpException, IOException {
+        UserInfoJpaEntity userInfoJpaEntity = userRepository.findById(userId).orElse(null);
+        AiChatResponse aiChatResponse = new AiChatResponse();
+        AiHistoryJpaEntity aiHistoryJpaEntity = new AiHistoryJpaEntity();
+        List<AiChatHistoryDTO> HistoryListDTO = new ArrayList<>();
+        String content;
+        if(chatId == null & ocid == null & type == null) {
+            content = geminiUtils.getGeminiGoogleResponse(text);
+            String topic = geminiUtils.getGeminiResponse(text + "\n 이 내용에 대한 간단한 요약으로 30자 이내로 알려줘.");
+
+            //DTO에 값 넣기
+            AiChatHistoryDTO aiChatHistoryDTO = historyDto(ocid, characterName, type, text, content);
+
+            //JPA에 값 넣기
+            HistoryListDTO.add(aiChatHistoryDTO);
+            String savedEntity = saveAiHistory(UUID.randomUUID().toString(), userInfoJpaEntity, topic, setAiHistoryConvert.getHistoryJson(HistoryListDTO));
+            log.info("chatId: {}", aiHistoryJpaEntity.getChatId());
+
+            //Response에 값 넣기
+            aiChatResponse = aiChatResponseDto(savedEntity, ocid, topic, content);
+        }else if(chatId != null & ocid == null & type == null) {
+            AiHistoryJpaEntity aiHistoryChatId = aiHistoryRepository.findByChatId(Objects.requireNonNull(chatId));
+
+            if(aiHistoryChatId == null){
+                throw new CustomException(ErrorCode.NotFound, "챗봇 대화가 존재하지 않습니다.");
+            }
+
+            HistoryListDTO = setAiHistoryConvert.setAiHistoryConvert(Objects.requireNonNull(aiHistoryChatId).getContent());
+            content = geminiUtils.getGeminiChatResponse(HistoryListDTO, text);
+
+            //DTO에 값 넣기
+            AiChatHistoryDTO aiChatHistoryDTO = historyDto(ocid, characterName, type, text, content);
+
+            HistoryListDTO.add(aiChatHistoryDTO);
+            aiHistoryChatId.setUpdatedAt(LocalDateTime.now());
+            aiHistoryChatId.setContent(setAiHistoryConvert.getHistoryJson(HistoryListDTO));
+            aiHistoryRepository.save(aiHistoryChatId);
+
+            //Response에 값 넣기
+            aiChatResponse = aiChatResponseDto(chatId, ocid, Objects.requireNonNull(aiHistoryChatId).getTopic(), content);
+        }else if(chatId == null & ocid != null & type != null) {
+            if(!typeCheck(type)){
+                throw new CustomException(ErrorCode.BadRequest, "잘못된 타입 요청입니다.");
+            }
+            String typeText = getTypeText(ocid, type, text);
+            String topic = geminiUtils.getGeminiResponse(text + "\n 이 내용에 대한 간단한 요약으로 30자 이내로 알려줘.");
+            content = geminiUtils.getGeminiGoogleResponse(typeText);
+
+            //JPA에 값 넣기
+            HistoryListDTO.add(historyDto(ocid, characterName, type, text, content));
+            String savedEntity = saveAiHistory(UUID.randomUUID().toString(), userInfoJpaEntity, topic, setAiHistoryConvert.getHistoryJson(HistoryListDTO));
+            log.info("chatId: {}, type: {}", aiHistoryJpaEntity.getChatId(), type);
+
+            //Response에 값 넣기
+            aiChatResponse = aiChatResponseDto(savedEntity, ocid, topic, content);
+        }else if(chatId != null & ocid != null & type != null) {
+            if(!typeCheck(type)){
+                throw new CustomException(ErrorCode.BadRequest, "잘못된 타입 요청입니다.");
+            }
+            AiHistoryJpaEntity aiHistoryChatId = aiHistoryRepository.findByChatId(Objects.requireNonNull(chatId));
+
+            if(aiHistoryChatId == null){
+                throw new CustomException(ErrorCode.NotFound, "챗봇 대화가 존재하지 않습니다.");
+            }
+            String typeText = getTypeText(ocid, type, text);
+            HistoryListDTO = setAiHistoryConvert.setAiHistoryConvert(Objects.requireNonNull(aiHistoryChatId).getContent());
+            content = geminiUtils.getGeminiChatResponse(HistoryListDTO, typeText);
+
+            //DTO에 값 넣기
+            AiChatHistoryDTO aiChatHistoryDTO = historyDto(ocid, characterName, type, text, content);
+
+            //JPA에 값 넣기
+            HistoryListDTO.add(aiChatHistoryDTO);
+            aiHistoryChatId.setUpdatedAt(LocalDateTime.now());
+            aiHistoryChatId.setContent(setAiHistoryConvert.getHistoryJson(HistoryListDTO));
+            aiHistoryRepository.save(aiHistoryChatId);
+
+            //Response에 값 넣기
+            aiChatResponse = aiChatResponseDto(chatId, ocid, Objects.requireNonNull(aiHistoryChatId).getTopic(), content);
+        }
+
+        return aiChatResponse;
+    }
+
+    @Override
+    public Flux<Map<String, Object>> getStreamChat(Long userId, String chatId, String characterName, String type, String ocid, String text) {
+        UserInfoJpaEntity userInfoJpaEntity = userRepository.findById(userId).orElse(null);
+        final List<AiChatHistoryDTO>[] HistoryListDTO = new List[]{new ArrayList<>()};
+        List<AiChatHistoryDTO> HistoryList = new ArrayList<>();
+        final String uuid = UUID.randomUUID().toString();
+        final List<String> contentList = new ArrayList<>(); // 결과를 모을 리스트 추가
+
+        return Flux.create(sink -> {
+            Flux<String> content;
+
+            if (chatId == null && ocid == null && type == null) {
+                content = geminiUtils.getGeminiStreamResponse(text);
+                String topic = geminiUtils.getGeminiResponse(text + "\n 이 내용에 대한 간단한 요약으로 30자 이내로 알려줘.");
+                content.subscribe(c -> {
+                    emitResponse(sink, uuid, characterName, type, ocid, topic, c);
+                    contentList.add(c); // 결과를 리스트에 추가
+                }, sink::error, () -> {
+                    AiChatHistoryDTO aiChatHistoryDTO = historyDto(ocid, characterName, type, text, contentConvert(contentList));
+                    HistoryList.add(aiChatHistoryDTO);
+                    saveAiHistory(uuid, userInfoJpaEntity, topic, setAiHistoryConvert.getHistoryJson(HistoryList));
+                    sink.complete();
+                });
+
+            } else if (chatId != null && ocid == null && type == null) {
+                AiHistoryJpaEntity aiHistoryChatId = aiHistoryRepository.findByChatId(Objects.requireNonNull(chatId));
+
+                if (aiHistoryChatId == null) {
+                    sink.error(new CustomException(ErrorCode.NotFound, "챗봇 대화가 존재하지 않습니다."));
+                    return;
+                }
+
+                HistoryListDTO[0] = setAiHistoryConvert.setAiHistoryConvert(Objects.requireNonNull(aiHistoryChatId).getContent());
+                content = geminiUtils.getGeminiStreamChatResponse(HistoryListDTO[0], text);
+                content.subscribe(c -> {
+                    emitResponse(sink, uuid, characterName, type, ocid, aiHistoryChatId.getTopic(), c);
+                    contentList.add(c);
+                }, sink::error, () -> {
+                    AiChatHistoryDTO aiChatHistoryDTO = historyDto(ocid, characterName, type, text, contentConvert(contentList));
+                    HistoryListDTO[0].add(aiChatHistoryDTO);
+                    aiHistoryChatId.setUpdatedAt(LocalDateTime.now());
+                    aiHistoryChatId.setContent(setAiHistoryConvert.getHistoryJson(HistoryListDTO[0]));
+                    aiHistoryRepository.save(aiHistoryChatId);
+                    sink.complete();
+                });
+
+            } else if (chatId == null && ocid != null && type != null) {
+                if (!typeCheck(type)) {
+                    sink.error(new CustomException(ErrorCode.BadRequest, "잘못된 타입 요청입니다."));
+                    return;
+                }
+                String typeText = getTypeText(ocid, type, text);
+                String topic = geminiUtils.getGeminiResponse(text + "\n 이 내용에 대한 간단한 요약으로 30자 이내로 알려줘.");
+
+                content = geminiUtils.getGeminiStreamResponse(typeText);
+                content.subscribe(c -> {
+                    emitResponse(sink, uuid, characterName, type, ocid, topic, c);
+                    contentList.add(c);
+                }, sink::error, () -> {
+                    AiChatHistoryDTO aiChatHistoryDTO = historyDto(ocid, characterName, type, text, contentConvert(contentList));
+                    HistoryListDTO[0].add(aiChatHistoryDTO);
+                    saveAiHistory(uuid, userInfoJpaEntity, topic, setAiHistoryConvert.getHistoryJson(HistoryListDTO[0]));
+                    sink.complete();
+                });
+
+            } else if (chatId != null && ocid != null && type != null) {
+                if (!typeCheck(type)) {
+                    sink.error(new CustomException(ErrorCode.BadRequest, "잘못된 타입 요청입니다."));
+                    return;
+                }
+                AiHistoryJpaEntity aiHistoryChatId = aiHistoryRepository.findByChatId(Objects.requireNonNull(chatId));
+
+                if (aiHistoryChatId == null) {
+                    sink.error(new CustomException(ErrorCode.NotFound, "챗봇 대화가 존재하지 않습니다."));
+                    return;
+                }
+                String typeText = getTypeText(ocid, type, text);
+                HistoryListDTO[0] = setAiHistoryConvert.setAiHistoryConvert(Objects.requireNonNull(aiHistoryChatId).getContent());
+                content = geminiUtils.getGeminiStreamChatResponse(HistoryListDTO[0], typeText);
+                content.subscribe(c -> {
+                    emitResponse(sink, uuid, characterName, type, ocid, aiHistoryChatId.getTopic(), c);
+                    contentList.add(c);
+                }, sink::error, () -> {
+                    AiChatHistoryDTO aiChatHistoryDTO = historyDto(ocid, characterName, type, text, contentConvert(contentList));
+                    HistoryListDTO[0].add(aiChatHistoryDTO);
+                    aiHistoryChatId.setUpdatedAt(LocalDateTime.now());
+                    aiHistoryChatId.setContent(setAiHistoryConvert.getHistoryJson(HistoryListDTO[0]));
+                    aiHistoryRepository.save(aiHistoryChatId);
+                    sink.complete();
+                });
+
+            } else {
+                sink.complete();
+                return;
+            }
+        });
+    }
+
+    private String contentConvert(List<String> contentList) {
+        StringBuilder sb = new StringBuilder();
+        for (String content : contentList) {
+            sb.append(content);
+        }
+        return sb.toString();
+    }
+
+    private void emitResponse(FluxSink<Map<String, Object>> sink, String uuid, String characterName, String type, String ocid, String topic, String content) {
+        Map<String, Object> response = new HashMap<>();
+        response.put("chatId", uuid);
+        response.put("characterName", characterName);
+        response.put("type", type);
+        response.put("ocid", ocid);
+        response.put("topic", topic);
+        response.put("content", content);
+        sink.next(response);
     }
 }
