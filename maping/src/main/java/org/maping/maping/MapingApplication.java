@@ -8,7 +8,6 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 
 @EnableScheduling
-@SpringBootApplication
 @SpringBootApplication(scanBasePackages = "org.maping.maping")
 @EnableJpaRepositories(basePackages = "org.maping.maping.repository")
 public class MapingApplication {
