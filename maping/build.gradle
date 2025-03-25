@@ -85,6 +85,18 @@ dependencies {
 	implementation 'org.springframework.modulith:spring-modulith-events-jpa:1.3.2'
 	implementation 'org.jsoup:jsoup:1.19.1'
 	implementation 'com.google.genai:google-genai:0.2.0'
+
+	// Spring WebFlux (WebClient 사용을 위함)
+	implementation 'org.springframework.boot:spring-boot-starter-webflux'
+
+	// Reactor Core (Mono, Flux 사용을 위함)
+	implementation 'io.projectreactor:reactor-core'
+
+	// Netty (Spring WebFlux의 기본 서버 엔진)
+	implementation 'io.netty:netty-all'
+
+	implementation 'com.github.f4b6a3:ulid-creator:5.2.3'
+
 }
 
 

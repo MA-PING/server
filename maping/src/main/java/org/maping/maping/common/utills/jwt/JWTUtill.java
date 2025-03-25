@@ -42,7 +42,7 @@ public class JWTUtill {
         Date accessTokenExpiresIn = new Date(now.getTime() + ACCESS_TOKEN_EXPIRE_TIME * 1000);
         Date refreshTokenExpiresIn = new Date(now.getTime() + REFRESH_TOKEN_EXPIRE_TIME * 1000);
 
-        String issuer = "skuhub";
+        String issuer = "Maping";
 
         String accessToken = createToken(userId, role, accessTokenExpiresIn, "AT");
         String refreshToken = createToken(userId, role, refreshTokenExpiresIn, "RT");
