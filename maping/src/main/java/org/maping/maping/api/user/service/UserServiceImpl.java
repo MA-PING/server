@@ -2,12 +2,14 @@ package org.maping.maping.api.user.service;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.maping.maping.api.auth.dto.request.PasswordRequest;
+import org.maping.maping.api.user.dto.request.UserApiRequest;
 import org.maping.maping.api.user.dto.response.UserInfoResponse;
 import org.maping.maping.common.utills.ULID.ULIDUtill;
 import org.maping.maping.common.utills.users.oauth.google.dto.GoogleUserInfoResponse;
 import org.maping.maping.common.utills.users.oauth.naver.NaverUtil;
 import org.maping.maping.external.oauth.naver.dto.response.NaverUserInfoResponse;
 import org.maping.maping.model.user.UserApiJpaEntity;
+import org.maping.maping.repository.user.UserApiRepository;
 import org.maping.maping.repository.user.UserRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -21,6 +23,7 @@ import org.maping.maping.model.user.LocalJpaEntity;
 import org.maping.maping.model.user.UserInfoJpaEntity;
 import org.maping.maping.repository.user.LocalRepository;
 import org.maping.maping.common.utills.users.oauth.google.GoogleUtil;
+import org.springframework.transaction.annotation.Isolation;
 
 import java.util.Optional;
 import java.util.regex.Pattern;
@@ -31,6 +34,7 @@ public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
     private final LocalRepository localRepository;
+    private final UserApiRepository userApiRepository;
     private final BCryptPasswordEncoder passwordEncoder;
 
     private static final String PASSWORD_REGEX = "^(?=.*[A-Za-z])(?=.*\\d)[A-Za-z\\d!@#$%^&*()_+\\-=]{6,}$";
@@ -99,4 +103,17 @@ public class UserServiceImpl implements UserService {
             localRepository.save(local);
         }
 
+    @Transactional
+    public void postUserApi(Long userId, UserApiRequest request) {
+        UserInfoJpaEntity userInfo = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+        UserApiJpaEntity userApi = UserApiJpaEntity.builder()
+                .id(userId)
+                .userInfoTb(userInfo)
+                .userApiInfo(request.getUserApiInfo())
+                .build();
+
+        userApiRepository.save(userApi);
+    }
     }

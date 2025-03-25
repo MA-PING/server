@@ -7,6 +7,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.maping.maping.api.auth.dto.request.NicknameCheckRequest;
 import org.maping.maping.api.auth.dto.request.PasswordRequest;
+import org.maping.maping.api.user.dto.request.UserApiRequest;
 import org.maping.maping.api.user.service.PasswordMailService;
 import org.maping.maping.api.user.service.UserService;
 import org.springframework.http.ResponseEntity;
@@ -77,5 +78,14 @@ public class UserController {
             return new BaseResponse<>(HttpStatus.INTERNAL_SERVER_ERROR.value(), "비밀번호 변경 이메일 발송 실패", "비밀번호 변경 이메일 발송 실패", false);
         }
     }
+
+    @Operation(summary = "유저의 API 등록하는 API", description = "유저의 API를 등록하는 API")
+    @PostMapping("/api/post")
+    public ResponseEntity<BaseResponse> postUserApi(HttpServletRequest request, @Valid @RequestBody UserApiRequest userApiRequest) {
+        Long userId = Long.parseLong(jwtUtill.getUserId(request));
+        userService.postUserApi(userId, userApiRequest);
+        return ResponseEntity.ok(new BaseResponse(200, "유저 API 등록 성공", null, true));
+    }
+
 
 }

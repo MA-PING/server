@@ -36,4 +36,8 @@
         @OneToOne(fetch = FetchType.LAZY)
         @JoinColumn(name = "user_id", referencedColumnName = "user_id", insertable = false, updatable = false)
         private UserInfoJpaEntity userInfo;
+
+        @Version  // 낙관적 락을 위한 버전 필드 추가
+        private Integer version;
+
     }
