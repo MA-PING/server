@@ -3,11 +3,11 @@ package org.maping.maping.api.social.service;
 import org.maping.maping.api.social.dto.request.AddFavoriteRequest;
 import org.maping.maping.api.social.dto.request.DeleteFavoriteRequest;
 import org.maping.maping.api.social.dto.response.FavoriteCharacterResponse;
-import org.maping.maping.model.social.CharacterSearchJpaEntity;
-import org.maping.maping.model.social.FavoriteJpaEntity;
+import org.maping.maping.model.search.CharacterSearchJpaEntity;
+import org.maping.maping.model.search.FavoriteJpaEntity;
 import org.maping.maping.model.user.UserInfoJpaEntity;
-import org.maping.maping.repository.social.CharacterSearchRepository;
-import org.maping.maping.repository.social.FavoriteRepository;
+import org.maping.maping.repository.search.CharacterSearchRepository;
+import org.maping.maping.repository.search.FavoriteRepository;
 import org.maping.maping.repository.user.UserRepository;
 import org.springframework.stereotype.Service;
 import lombok.RequiredArgsConstructor;
@@ -15,13 +15,12 @@ import lombok.RequiredArgsConstructor;
 import java.util.List;
 import java.util.stream.Collectors;
 
-
 @Service
 @RequiredArgsConstructor
-public class SocialServiceImpl implements  SocialService {
-    private  final UserRepository userRepository;
-    private  final FavoriteRepository favoriteRepository;
-    private  final CharacterSearchRepository characterSearchRepository;
+public class SocialServiceImpl implements SocialService {
+    private final UserRepository userRepository;
+    private final FavoriteRepository favoriteRepository;
+    private final CharacterSearchRepository characterSearchRepository;
 
     public void addFavorite(Long userId, AddFavoriteRequest request) {
         UserInfoJpaEntity user = userRepository.findById(userId)
@@ -32,7 +31,7 @@ public class SocialServiceImpl implements  SocialService {
 
         FavoriteJpaEntity favorite = FavoriteJpaEntity.builder()
                 .user(user)
-                .character(character)
+                .character(character)  // 여기서 CharacterSearchJpaEntity를 사용
                 .build();
 
         favoriteRepository.save(favorite);
@@ -49,7 +48,7 @@ public class SocialServiceImpl implements  SocialService {
         // 즐겨찾기 목록을 FavoriteCharacterResponse로 변환하여 반환
         return favorites.stream()
                 .map(fav -> {
-                    CharacterSearchJpaEntity c = fav.getCharacter();
+                    CharacterSearchJpaEntity c = fav.getCharacter();  // FavoriteJpaEntity에서 CharacterSearchJpaEntity 사용
                     return FavoriteCharacterResponse.builder()
                             .characterName(c.getCharacterName() != null ? c.getCharacterName() : "")
                             .characterLevel(c.getCharacterLevel())

@@ -1,10 +1,15 @@
-package org.maping.maping.model.social;
+package org.maping.maping.model.search;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.util.LinkedHashSet;
+import java.util.Set;
 
 @Entity
 @Table(name = "CHARACTER_SEARCH_TB")
@@ -14,6 +19,7 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @Builder
 public class CharacterSearchJpaEntity {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "character_id", nullable = false)
@@ -73,4 +79,5 @@ public class CharacterSearchJpaEntity {
     @Size(max = 128)
     @Column(name = "guild", length = 128)
     private String guild;
+
 }

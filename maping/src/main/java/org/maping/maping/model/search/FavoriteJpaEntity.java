@@ -1,4 +1,4 @@
-package org.maping.maping.model.social;
+package org.maping.maping.model.search;
 import jakarta.persistence.*;
 import lombok.*;
 import org.maping.maping.model.user.UserInfoJpaEntity;

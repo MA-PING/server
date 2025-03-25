@@ -1,7 +1,7 @@
-package org.maping.maping.repository.social;
+package org.maping.maping.repository.search;
 
-import org.maping.maping.model.social.CharacterSearchJpaEntity;
-import org.maping.maping.model.social.FavoriteJpaEntity;
+import org.maping.maping.model.search.CharacterSearchJpaEntity;
+import org.maping.maping.model.search.FavoriteJpaEntity;
 import org.maping.maping.model.user.UserInfoJpaEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 
