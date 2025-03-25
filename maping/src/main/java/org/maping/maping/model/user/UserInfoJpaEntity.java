@@ -33,6 +33,10 @@ public class UserInfoJpaEntity {
     @Column
     private String iconic;
 
+    // @Column(name = "main_character")
+    // private String mainCharacter;
+
+
     @CreationTimestamp // 생성일자를 자동으로 관리
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -43,13 +47,22 @@ public class UserInfoJpaEntity {
 
     @OneToMany(mappedBy = "user")
     private Set<AiHistoryJpaEntity> aiHistoryTbs = new LinkedHashSet<>();
-    @OneToOne(mappedBy = "userInfo", cascade = CascadeType.ALL)
-    private LocalJpaEntity local; // Local을 LocalJpaEntity로 수정
+
+    // @OneToOne(mappedBy = "userInfo", cascade = CascadeType.ALL)
+    // private LocalJpaEntity local; // Local을 LocalJpaEntity로 수정
 
     @OneToOne(mappedBy = "userInfo", cascade = CascadeType.ALL)
     private NaverJpaEntity naver; // Local을 LocalJpaEntity로 수정
+    @OneToOne(mappedBy = "userInfo", cascade = CascadeType.ALL)
+    private UserLocalJpaEntity local; // Local을 LocalJpaEntity로 수정
+
+    //@OneToOne(mappedBy = "userInfo", cascade = CascadeType.ALL)
+    //private NaverJpaEntity naver; // Local을 LocalJpaEntity로 수정
 
     @OneToOne(mappedBy = "userInfo", cascade = CascadeType.ALL)
     private UserApiJpaEntity userApi;
+
+    @OneToMany(mappedBy = "user")
+    private Set<UserOcidJpaEntity> userOcidTbs = new LinkedHashSet<>();
 
 }

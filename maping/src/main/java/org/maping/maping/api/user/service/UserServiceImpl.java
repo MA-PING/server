@@ -25,10 +25,13 @@ import org.maping.maping.common.utills.users.oauth.google.GoogleUtil;
 import java.util.Optional;
 import java.util.regex.Pattern;
 
+import org.maping.maping.api.user.dto.request.SaveApiRequest;
+import org.maping.maping.api.user.dto.request.SaveMainCharacterRequest;
+import org.maping.maping.repository.user.UserApiRepository;
 @Service
 @RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
-
+    private final UserApiRepository userApiRepository;
     private final UserRepository userRepository;
     private final LocalRepository localRepository;
     private final BCryptPasswordEncoder passwordEncoder;
@@ -99,4 +102,66 @@ public class UserServiceImpl implements UserService {
             localRepository.save(local);
         }
 
+    @Transactional
+    @Override
+    public void saveApi(Long userId, SaveApiRequest saveApiRequest) {
+        UserInfoJpaEntity user = userRepository.findById(userId)
+                .orElseThrow(() -> new CustomException(ErrorCode.NotFound, "사용자를 찾을 수 없습니다."));
+
+        UserApiJpaEntity userApi = user.getUserApi();
+
+        if (userApi == null) {
+            userApi = UserApiJpaEntity.builder()
+                    .userInfo(user)
+                    .version(1L)
+                    .userApiInfo(saveApiRequest.getApiKey())
+                    .build();
+
+            // 양방향 매핑 세팅
+            user.setUserApi(userApi);
+        } else {
+            userApi.setUserApiInfo(saveApiRequest.getApiKey());
+        }
+
+        // 반드시 직접 저장
+        userApiRepository.save(userApi);
     }
+
+
+    @Override
+    public void updateApi(Long userId, SaveApiRequest saveApiRequest) {
+        UserInfoJpaEntity user = userRepository.findById(userId)
+                .orElseThrow(() -> new CustomException(ErrorCode.NotFound, "사용자를 찾을 수 없습니다."));
+
+        UserApiJpaEntity userApi = userApiRepository.findByUserInfo(user);
+
+        if (userApi == null) {
+            userApi = UserApiJpaEntity.builder()
+                    .userInfo(user)
+                    .version(userApi.getVersion() + 1L)
+                    .userApiInfo(saveApiRequest.getApiKey())
+                    .build();
+
+            // 양방향 매핑 세팅
+            user.setUserApi(userApi);
+        } else {
+            userApi.setUserApiInfo(saveApiRequest.getApiKey());
+        }
+
+        // 반드시 직접 저장
+        userApiRepository.save(userApi);
+    }
+
+
+    @Transactional
+    @Override
+    public void original(Long userId, SaveMainCharacterRequest saveMainCharacterRequest) {
+        UserInfoJpaEntity user = userRepository.findById(userId)
+                .orElseThrow(() -> new CustomException(ErrorCode.NotFound, "사용자를 찾을 수 없습니다."));
+
+        user.setMainCharacter(saveMainCharacterRequest.getCharacterName());
+
+        userRepository.save(user);
+    }
+
+}

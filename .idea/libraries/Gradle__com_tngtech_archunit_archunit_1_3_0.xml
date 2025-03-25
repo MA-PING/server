@@ -1,0 +1,10 @@
+<component name="libraryTable">
+  <library name="Gradle: com.tngtech.archunit:archunit:1.3.0" type="java-imported" external-system-id="GRADLE">
+    <properties groupId="com.tngtech.archunit" artifactId="archunit" version="1.3.0" baseVersion="1.3.0" />
+    <CLASSES>
+      <root url="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/com.tngtech.archunit/archunit/1.3.0/4f4c504ec5369491d9d5c16afa6fc5261a5d81/archunit-1.3.0.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>
