@@ -1,0 +1,10 @@
+<component name="libraryTable">
+  <library name="Gradle: com.structurizr:structurizr-core:1.29.0" type="java-imported" external-system-id="GRADLE">
+    <properties groupId="com.structurizr" artifactId="structurizr-core" version="1.29.0" baseVersion="1.29.0" />
+    <CLASSES>
+      <root url="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/com.structurizr/structurizr-core/1.29.0/c63b4b2fc05b1140eae69b863716aee0213a2a86/structurizr-core-1.29.0.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

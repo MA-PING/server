@@ -1,0 +1,10 @@
+<component name="libraryTable">
+  <library name="Gradle: jakarta.mail:jakarta.mail-api:2.0.0" type="java-imported" external-system-id="GRADLE">
+    <properties groupId="jakarta.mail" artifactId="jakarta.mail-api" version="2.0.0" baseVersion="2.0.0" />
+    <CLASSES>
+      <root url="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/jakarta.mail/jakarta.mail-api/2.0.0/ec8573bb341dae3a0ff7c93f00b32968b706c7f0/jakarta.mail-api-2.0.0.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>
