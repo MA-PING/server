@@ -7,6 +7,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.maping.maping.api.auth.dto.request.NicknameCheckRequest;
 import org.maping.maping.api.auth.dto.request.PasswordRequest;
+import org.maping.maping.api.user.dto.request.OcidRequest;
 import org.maping.maping.api.user.dto.request.UserApiRequest;
 import org.maping.maping.api.user.service.PasswordMailService;
 import org.maping.maping.api.user.service.UserService;
@@ -94,5 +95,14 @@ public class UserController {
         Long userId = Long.parseLong(jwtUtill.getUserId(request));
         userService.deleteUserApi(userId);
         return ResponseEntity.ok(new BaseResponse(200, "유저 API키 삭제 성공", null, true));
+    }
+
+    @Operation(summary = "본캐 설정", description = "본캐 설정하는 API")
+    @ResponseStatus(HttpStatus.OK)
+    @PostMapping("/original")
+    public BaseResponse<String> setOriginalCharacter(HttpServletRequest request, @RequestBody OcidRequest ocid) {
+        Long userId = Long.parseLong(jwtUtill.getUserId(request));
+
+        return userService.setOriginalCharacter(userId, ocid.getOcid());
     }
 }

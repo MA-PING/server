@@ -1,12 +1,16 @@
 package org.maping.maping.api.user.service;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.maping.maping.api.auth.dto.request.PasswordRequest;
 import org.maping.maping.api.user.dto.request.UserApiRequest;
 import org.maping.maping.api.user.dto.response.UserInfoResponse;
+import org.maping.maping.common.response.BaseResponse;
 import org.maping.maping.common.utills.ULID.ULIDUtill;
 import org.maping.maping.common.utills.users.oauth.google.dto.GoogleUserInfoResponse;
 import org.maping.maping.common.utills.users.oauth.naver.NaverUtil;
+import org.maping.maping.external.nexon.NEXONUtils;
+import org.maping.maping.external.nexon.dto.character.CharacterListDto;
 import org.maping.maping.external.oauth.naver.dto.response.NaverUserInfoResponse;
 import org.maping.maping.model.user.UserApiJpaEntity;
 import org.maping.maping.repository.user.UserApiRepository;
@@ -28,6 +32,7 @@ import org.springframework.transaction.annotation.Isolation;
 import java.util.Optional;
 import java.util.regex.Pattern;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
@@ -36,6 +41,7 @@ public class UserServiceImpl implements UserService {
     private final LocalRepository localRepository;
     private final UserApiRepository userApiRepository;
     private final BCryptPasswordEncoder passwordEncoder;
+    private final NEXONUtils nexonUtils;
 
     private static final String PASSWORD_REGEX = "^(?=.*[A-Za-z])(?=.*\\d)[A-Za-z\\d!@#$%^&*()_+\\-=]{6,}$";
     private static final Pattern PASSWORD_PATTERN = Pattern.compile(PASSWORD_REGEX);
@@ -125,4 +131,32 @@ public class UserServiceImpl implements UserService {
         userApiRepository.delete(userApi);
     }
 
+    @Override
+    public BaseResponse<String> setOriginalCharacter(Long userId, String ocid) {
+        Optional<UserApiJpaEntity> apiKey = userApiRepository.findById(userId);
+        if (apiKey.isPresent()) {
+            if (apiKey.get().getUserApiInfo() == null) {
+                throw new CustomException(ErrorCode.BadRequest, "API 키가 존재하지 않습니다.");
+            }
+        } else {
+            throw new CustomException(ErrorCode.BadRequest, "API 키가 존재하지 않습니다.");
+        }
+        CharacterListDto characterList = nexonUtils.getCharacterList(apiKey.get().getUserApiInfo());
+        log.info(String.valueOf(characterList));
+        if (characterList != null) {
+            for(int i = 0; i < characterList.getAccountList().size(); i++){
+                if(characterList.getAccountList().get(i).getCharacterList().getFirst().getOcid().equals(ocid)){
+                    UserInfoJpaEntity user = userRepository.findById(userId)
+                            .orElseThrow(() -> new CustomException(ErrorCode.NotFound, "사용자를 찾을 수 없습니다."));
+                    user.setMainCharacterOcid(ocid);
+                    user.setMainCharacterName(characterList.getAccountList().get(i).getCharacterList().getFirst().getCharacterName());
+                    userRepository.save(user);
+                    return new BaseResponse<>(200, "본캐 설정 성공", "본캐 설정 성공", true);
+                }
+            }
+        }else{
+            return new BaseResponse<>(404, "유효하지 않은 OCID입니다.", "유효하지 않은 OCID입니다.", false);
+        }
+        return new BaseResponse<>(400, "본캐 설정 실패", "본캐 설정 실패", false);
     }
+}

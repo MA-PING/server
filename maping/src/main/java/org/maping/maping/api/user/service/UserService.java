@@ -3,6 +3,7 @@ package org.maping.maping.api.user.service;
 import org.maping.maping.api.auth.dto.request.PasswordRequest;
 import org.maping.maping.api.user.dto.request.UserApiRequest;
 import org.maping.maping.api.user.dto.response.UserInfoResponse;
+import org.maping.maping.common.response.BaseResponse;
 import org.maping.maping.model.user.UserInfoJpaEntity;
 
 public interface UserService {
@@ -19,4 +20,5 @@ public interface UserService {
 
     void deleteUserApi(Long userId);
 
+    BaseResponse<String> setOriginalCharacter(Long userId, String ocid);
 }

@@ -1,6 +1,7 @@
 package org.maping.maping.model.user;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Size;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
@@ -56,6 +57,14 @@ public class UserInfoJpaEntity {
     // UserApi와 One-to-One 관계 추가
     @OneToOne(mappedBy = "userInfoTb")
     private UserApiJpaEntity userApi;
+
+    @Size(max = 255)
+    @Column(name = "main_character_ocid")
+    private String mainCharacterOcid;
+
+    @Size(max = 255)
+    @Column(name = "main_character_name")
+    private String mainCharacterName;
 
 
     // getUserApi() 메서드 정의
