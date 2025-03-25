@@ -88,4 +88,11 @@ public class UserController {
     }
 
 
+    @Operation(summary = "유저의 API 삭제하는 API", description = "유저의 API를 삭제하는 API")
+    @DeleteMapping("/api/delete")
+    public ResponseEntity<BaseResponse> deleteUserApi(HttpServletRequest request) {
+        Long userId = Long.parseLong(jwtUtill.getUserId(request));
+        userService.deleteUserApi(userId);
+        return ResponseEntity.ok(new BaseResponse(200, "유저 API키 삭제 성공", null, true));
+    }
 }

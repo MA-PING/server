@@ -17,4 +17,6 @@ public interface UserService {
 
     void postUserApi(Long userId, UserApiRequest request);
 
+    void deleteUserApi(Long userId);
+
 }

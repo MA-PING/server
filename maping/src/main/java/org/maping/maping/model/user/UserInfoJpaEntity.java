@@ -49,7 +49,17 @@ public class UserInfoJpaEntity {
     @OneToOne(mappedBy = "userInfo", cascade = CascadeType.ALL)
     private NaverJpaEntity naver; // Local을 LocalJpaEntity로 수정
 
-    @OneToOne(mappedBy = "userInfo", cascade = CascadeType.ALL)
+   // @OneToOne(mappedBy = "userInfo", cascade = CascadeType.ALL)
+   // private UserApiJpaEntity userApi;
+
+
+    // UserApi와 One-to-One 관계 추가
+    @OneToOne(mappedBy = "userInfoTb")
     private UserApiJpaEntity userApi;
 
+
+    // getUserApi() 메서드 정의
+    public UserApiJpaEntity getUserApi() {
+        return userApi;
+    }
 }

@@ -116,4 +116,13 @@ public class UserServiceImpl implements UserService {
 
         userApiRepository.save(userApi);
     }
+
+    @Transactional
+    public void deleteUserApi(Long userId) {
+        UserApiJpaEntity userApi = userApiRepository.findById(userId)
+                .orElseThrow(() -> new CustomException(ErrorCode.NotFound, "User API not found"));
+
+        userApiRepository.delete(userApi);
+    }
+
     }
