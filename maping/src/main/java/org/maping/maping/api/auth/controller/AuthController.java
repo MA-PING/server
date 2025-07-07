@@ -6,10 +6,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.maping.maping.api.auth.dto.request.LoginRequest;
-import org.maping.maping.api.auth.dto.request.NicknameCheckRequest;
-import org.maping.maping.api.auth.dto.request.PasswordRequest;
-import org.maping.maping.api.auth.dto.request.UserRegistrationRequest;
+import org.maping.maping.api.auth.dto.request.*;
 import org.maping.maping.api.auth.dto.response.OAuthLoginResponse;
 import org.maping.maping.api.auth.service.AuthService;
 import org.maping.maping.api.auth.service.MailService;
@@ -52,6 +49,13 @@ public class AuthController {
     public BaseResponse<JwtDto> login(@Valid @RequestBody LoginRequest loginRequest) {
         JwtDto jwtDto = authService.login(loginRequest.getEmail(), loginRequest.getPassword());
         return new BaseResponse<>(HttpStatus.OK.value(), "로그인 성공", jwtDto, true);
+    }
+
+    @Operation(summary = "토큰 재발급", description = "리프레쉬 토큰 기반 액세스 토큰을 재발급 받는 API")
+    @ResponseStatus(HttpStatus.OK)
+    @PatchMapping("/reissue")
+    public BaseResponse<JwtDto> reissue(@RequestBody ReissueRequest request) {
+        return new BaseResponse<>(authService.reissue(request.getRefreshToken()));
     }
 
     @Operation(summary = "네이버 로그인", description = "네이버 로그인 API")
@@ -137,4 +141,3 @@ public class AuthController {
         }
     }
 }
-
